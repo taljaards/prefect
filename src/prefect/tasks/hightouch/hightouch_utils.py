@@ -87,22 +87,18 @@ class HightouchClient:
                 raise FAIL(message=msg)
 
             start_sync_response = response.json()
-            if wait_for_completion:
-                elapsed_wait_time = 0
-                sync_status = None
-                while not max_wait_time or elapsed_wait_time <= max_wait_time:
-
-                    sync_status_response = self.get_sync_run_status(sync_id=sync_id)
-                    sync_status = sync_status_response["sync"]["sync_status"]
-
-                    if sync_status == "success":
-                        return sync_status_response
-                    else:
-                        time.sleep(wait_time_between_api_calls)
-                        elapsed_wait_time += wait_time_between_api_calls
-
-                msg = "Sync run exceeded `max_wait_time`"
-                raise FAIL(message=msg)
-
-            else:
+            if not wait_for_completion:
                 return start_sync_response
+            elapsed_wait_time = 0
+            sync_status = None
+            while not max_wait_time or elapsed_wait_time <= max_wait_time:
+
+                sync_status_response = self.get_sync_run_status(sync_id=sync_id)
+                sync_status = sync_status_response["sync"]["sync_status"]
+
+                if sync_status == "success":
+                    return sync_status_response
+                time.sleep(wait_time_between_api_calls)
+                elapsed_wait_time += wait_time_between_api_calls
+
+            raise FAIL(message="Sync run exceeded `max_wait_time`")

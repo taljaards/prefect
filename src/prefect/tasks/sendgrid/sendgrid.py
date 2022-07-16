@@ -143,6 +143,4 @@ class SendEmail(Task):
             message.attachment = attachment
 
         sendgrid_client = SendGridAPIClient(sendgrid_api_key)
-        response = sendgrid_client.send(message)
-
-        return response
+        return sendgrid_client.send(message)

@@ -45,12 +45,9 @@ class RunState:
         """True if the current state is a terminal state."""
         if self.life_cycle_state not in RUN_LIFE_CYCLE_STATES:
             raise PrefectException(
-                (
-                    "Unexpected life cycle state: {}: If the state has "
-                    "been introduced recently, please check the Databricks user "
-                    "guide for troubleshooting information"
-                ).format(self.life_cycle_state)
+                f"Unexpected life cycle state: {self.life_cycle_state}: If the state has been introduced recently, please check the Databricks user guide for troubleshooting information"
             )
+
         return self.life_cycle_state in ("TERMINATED", "SKIPPED", "INTERNAL_ERROR")
 
     @property
@@ -118,13 +115,7 @@ class DatabricksHook:
             assert h._parse_host('xx.cloud.databricks.com') == 'xx.cloud.databricks.com'
 
         """
-        urlparse_host = urlparse(host).hostname
-        if urlparse_host:
-            # In this case, host = https://xx.cloud.databricks.com
-            return urlparse_host
-        else:
-            # In this case, host = xx.cloud.databricks.com
-            return host
+        return urlparse_host if (urlparse_host := urlparse(host).hostname) else host
 
     def _do_api_call(self, endpoint_info, json):
         """
@@ -162,7 +153,7 @@ class DatabricksHook:
         elif method == "PATCH":
             request_func = requests.patch
         else:
-            raise PrefectException("Unexpected HTTP Method: " + method)
+            raise PrefectException(f"Unexpected HTTP Method: {method}")
 
         attempt_num = 1
         while True:
@@ -346,9 +337,7 @@ class DatabricksHook:
                 LIST_JOB_ENDPOINT, {"limit": limit, "offset": list_api_offset}
             )
             all_jobs = response_payload.get("jobs", [])
-            for j in all_jobs:
-                if j["settings"]["name"] == job_name:
-                    matching_jobs.append(j)
+            matching_jobs.extend(j for j in all_jobs if j["settings"]["name"] == job_name)
             list_api_offset = list_api_offset + limit
             more_jobs_to_list = response_payload["has_more"]
 
@@ -395,5 +384,5 @@ class _TokenAuth(AuthBase):
         self.token = token
 
     def __call__(self, r):
-        r.headers["Authorization"] = "Bearer " + self.token
+        r.headers["Authorization"] = f"Bearer {self.token}"
         return r

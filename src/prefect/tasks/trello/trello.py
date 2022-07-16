@@ -78,6 +78,4 @@ Click the 'Token' link on https://trello.com/app-key to generate."""
             "name": card_name,
             "desc": card_info,
         }
-        response = requests.post(url, data=params)
-
-        return response
+        return requests.post(url, data=params)

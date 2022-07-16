@@ -115,16 +115,15 @@ def subprocess_heartbeat(heartbeat_cmd: List[str], logger: Logger) -> Iterator[N
         #   cannot be spawned from a daemonic subprocess, and Dask sometimes will
         #   submit tasks to run within daemonic subprocesses
         current_env = dict(os.environ).copy()
-        current_env.update(
-            to_environment_variables(
-                prefect.context.config,
-                include={
-                    "cloud.api_key",
-                    "cloud.tenant_id",
-                    "cloud.api",
-                },
-            )
+        current_env |= to_environment_variables(
+            prefect.context.config,
+            include={
+                "cloud.api_key",
+                "cloud.tenant_id",
+                "cloud.api",
+            },
         )
+
         clean_env = {k: v for k, v in current_env.items() if v is not None}
         p = subprocess.Popen(
             heartbeat_cmd,
@@ -641,7 +640,7 @@ def prepare_upstream_states_for_mapping(
             )
 
     # infinite loop, if upstream_states has any entries
-    while True and upstream_states:
+    while upstream_states:
         i = next(counter)
         states = {}
         try:
@@ -652,18 +651,9 @@ def prepare_upstream_states_for_mapping(
                 if not edge.mapped:
                     states[edge] = upstream_state
 
-                # if the edge is mapped and the upstream state is Mapped, then we are mapping
-                # over a mapped task. In this case, we take the appropriately-indexed upstream
-                # state from the upstream tasks's `Mapped.map_states` array.
-                # Note that these "states" might actually be futures at this time; we aren't
-                # blocking until they finish.
                 elif edge.mapped and upstream_state.is_mapped():
                     states[edge] = mapped_children[edge.upstream_task][i]  # type: ignore
 
-                # Otherwise, we are mapping over the result of a "vanilla" task. In this
-                # case, we create a copy of the upstream state but set the result to the
-                # appropriately-indexed item from the upstream task's `State.result`
-                # array.
                 else:
                     states[edge] = copy.copy(upstream_state)
 
@@ -676,10 +666,12 @@ def prepare_upstream_states_for_mapping(
                         not state.is_mapped()
                         or upstream_state._result != prefect.engine.result.NoResult
                     ):
-                        if not hasattr(upstream_state.result, "__getitem__"):
-                            value = None
-                        else:
-                            value = upstream_state.result[i]
+                        value = (
+                            upstream_state.result[i]
+                            if hasattr(upstream_state.result, "__getitem__")
+                            else None
+                        )
+
                         upstream_result = upstream_state._result.from_value(value)  # type: ignore
                         states[edge].result = upstream_result
                         if state.map_states and i >= len(state.map_states):  # type: ignore
@@ -691,7 +683,6 @@ def prepare_upstream_states_for_mapping(
             # only add this iteration if we made it through all iterables
             map_upstream_states.append(states)
 
-        # index error means we reached the end of the shortest iterable
         except IndexError:
             break
 
@@ -751,12 +742,13 @@ def flatten_mapped_children(
             for c in mapped_children
         ]
     )
-    new_states = []
+    new_states = [
+        [
+            executor.submit(_build_flattened_state, child, i)
+            for i in range(count)
+        ]
+        for child, count in zip(mapped_children, counts)
+    ]
 
-    for child, count in zip(mapped_children, counts):
-        new_states.append(
-            [executor.submit(_build_flattened_state, child, i) for i in range(count)]
-        )
 
-    flattened_states = [i for s in new_states for i in s]
-    return flattened_states
+    return [i for s in new_states for i in s]

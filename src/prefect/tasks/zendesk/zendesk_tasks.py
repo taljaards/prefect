@@ -113,20 +113,17 @@ class ZendeskTicketsIncrementalExportTask(Task):
             - A `dict` containing the list of tickets and, optionally, the included
               entities.
         """
-        if not api_token and not api_token_env_var:
-            raise ValueError("Both `api_token` and `api_token_env_var` are missing.")
+        if not api_token:
+            if not api_token_env_var:
+                raise ValueError("Both `api_token` and `api_token_env_var` are missing.")
 
-        if not api_token and api_token_env_var not in os.environ:
-            raise ValueError(
-                "`api_token` is missing and `api_token_env_var` not found."
-            )
+            if api_token_env_var not in os.environ:
+                raise ValueError(
+                    "`api_token` is missing and `api_token_env_var` not found."
+                )
 
         token = None
-        if api_token:
-            token = api_token
-        elif api_token_env_var:
-            token = os.environ[api_token_env_var]
-
+        token = api_token or os.environ[api_token_env_var]
         if not subdomain:
             raise ValueError("`subdomain` is missing.")
 

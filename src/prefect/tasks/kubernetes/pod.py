@@ -791,7 +791,7 @@ class ConnectGetNamespacedPodExec(Task):
             client.CoreV1Api, get_kubernetes_client("pod", kubernetes_api_key_secret)
         )
 
-        api_response = stream(
+        return stream(
             api_client.connect_get_namespaced_pod_exec,
             name=pod_name,
             namespace=namespace,
@@ -803,4 +803,3 @@ class ConnectGetNamespacedPodExec(Task):
             tty=False,
             **kube_kwargs
         )
-        return api_response

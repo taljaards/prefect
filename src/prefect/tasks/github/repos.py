@@ -58,11 +58,12 @@ class GetRepoInfo(Task):
         # the 'import prefect' time low
         import requests
 
-        url = "https://api.github.com/repos/{}".format(repo)
+        url = f"https://api.github.com/repos/{repo}"
         headers = {
-            "AUTHORIZATION": "token {}".format(token),
+            "AUTHORIZATION": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+
 
         # send the request
         resp = requests.get(url, headers=headers)
@@ -141,28 +142,32 @@ class CreateBranch(Task):
         # the 'import prefect' time low
         import requests
 
-        url = "https://api.github.com/repos/{}/git/refs".format(repo)
+        url = f"https://api.github.com/repos/{repo}/git/refs"
         headers = {
-            "AUTHORIZATION": "token {}".format(token),
+            "AUTHORIZATION": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
 
+
         # gather branch information
-        resp = requests.get(url + "/heads", headers=headers)
+        resp = requests.get(f"{url}/heads", headers=headers)
         resp.raise_for_status()
         branch_data = resp.json()
 
-        commit_sha = None
-        for branch in branch_data:
-            if branch.get("ref") == "refs/heads/{}".format(base):
-                commit_sha = branch.get("object", {}).get("sha")
-                break
+        commit_sha = next(
+            (
+                branch.get("object", {}).get("sha")
+                for branch in branch_data
+                if branch.get("ref") == f"refs/heads/{base}"
+            ),
+            None,
+        )
 
         if commit_sha is None:
-            raise ValueError("Base branch {} not found.".format(base))
+            raise ValueError(f"Base branch {base} not found.")
 
         # create new branch
-        new_branch = {"ref": "refs/heads/{}".format(branch_name), "sha": commit_sha}
+        new_branch = {"ref": f"refs/heads/{branch_name}", "sha": commit_sha}
         resp = requests.post(url, headers=headers, json=new_branch)
         resp.raise_for_status()
         return resp.json()

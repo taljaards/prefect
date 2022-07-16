@@ -59,8 +59,7 @@ def string_to_type(val: str) -> Union[bool, int, float, str]:
 
     # dicts, ints, floats, or any other literal Python syntax
     try:
-        val_as_obj = literal_eval(val)
-        return val_as_obj
+        return literal_eval(val)
     except Exception:
         pass
 
@@ -77,9 +76,7 @@ def interpolate_env_vars(env_var: str) -> Optional[Union[bool, int, float, str]]
     if not env_var or not isinstance(env_var, str):
         return env_var
 
-    counter = 0
-
-    while counter < 10:
+    for counter in range(10):
         interpolated = os.path.expanduser(os.path.expandvars(str(env_var)))
         if interpolated == env_var:
             # if a change was made, apply string-to-type casts; otherwise leave alone
@@ -90,8 +87,6 @@ def interpolate_env_vars(env_var: str) -> Optional[Union[bool, int, float, str]]
             return interpolated
         else:
             env_var = interpolated
-        counter += 1
-
     return None
 
 
@@ -101,7 +96,7 @@ def create_user_config(dest_path: str, source_path: str = DEFAULT_CONFIG) -> Non
     """
     dest_path = cast(str, interpolate_env_vars(dest_path))
     if os.path.isfile(dest_path):
-        raise ValueError("File already exists: {}".format(dest_path))
+        raise ValueError(f"File already exists: {dest_path}")
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
     with open(dest_path, "w") as dest:
@@ -202,10 +197,7 @@ def load_toml(path: str) -> dict:
     """
     Loads a config dictionary from TOML
     """
-    return {
-        key: value
-        for key, value in toml.load(cast(str, interpolate_env_vars(path))).items()
-    }
+    return dict(toml.load(cast(str, interpolate_env_vars(path))).items())
 
 
 def interpolate_config(config: dict, env_var_prefix: str = None) -> Config:
@@ -225,10 +217,10 @@ def interpolate_config(config: dict, env_var_prefix: str = None) -> Config:
     if env_var_prefix:
 
         for env_var, env_var_value in os.environ.items():
-            if env_var.startswith(env_var_prefix + "__"):
+            if env_var.startswith(f"{env_var_prefix}__"):
 
                 # strip the prefix off the env var
-                env_var_option = env_var[len(env_var_prefix + "__") :]
+                env_var_option = env_var[len(f"{env_var_prefix}__"):]
 
                 # make sure the resulting env var has at least one delimitied section and key
                 if "__" not in env_var:

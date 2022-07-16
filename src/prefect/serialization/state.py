@@ -20,8 +20,7 @@ def get_safe(obj: state.State, context: dict) -> Any:
     """
     if context.get("attr") == "_result":
         return obj._result
-    value = context.get("value", None)
-    return value
+    return context.get("value")
 
 
 class BaseStateSchema(ObjectSchema):
@@ -41,8 +40,7 @@ class BaseStateSchema(ObjectSchema):
     def create_object(self, data: dict, **kwargs: Any) -> state.State:
         result_obj = data.pop("_result", None)
         data["result"] = result_obj
-        base_obj = super().create_object(data)
-        return base_obj
+        return super().create_object(data)
 
 
 class PendingSchema(BaseStateSchema):

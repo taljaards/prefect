@@ -106,12 +106,10 @@ class AWSClientWait(Task):
             # Use user-provided waiter definition
             waiter_model = WaiterModel(waiter_definition)
             waiter = create_waiter_with_client(waiter_name, waiter_model, boto_client)
+        elif waiter_name in boto_client.waiter_names:
+            waiter = boto_client.get_waiter(waiter_name)
         else:
-            # Use either boto-provided or prefect-provided waiter
-            if waiter_name in boto_client.waiter_names:
-                waiter = boto_client.get_waiter(waiter_name)
-            else:
-                waiter = self._load_prefect_waiter(boto_client, client, waiter_name)
+            waiter = self._load_prefect_waiter(boto_client, client, waiter_name)
 
         try:
             waiter.wait(**waiter_kwargs)

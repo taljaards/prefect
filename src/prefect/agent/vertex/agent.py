@@ -116,9 +116,7 @@ class VertexAgent(Agent):
         self.logger.info(f"Created vertex job: {resp}")
         # The full name includes a projects key, to form the url we exclude it
         path = "/".join(resp.name.split("/")[2:]).replace("customJobs", "training")
-        # return a url to navigate to the submitted flow
-        url = f"https://console.cloud.google.com/vertex-ai/{path}"
-        return url
+        return f"https://console.cloud.google.com/vertex-ai/{path}"
 
     def generate_task_definition(self, flow_run: GraphQLResult) -> Dict[str, Any]:
         """Generate an Vertex task definition from a flow run
@@ -135,11 +133,12 @@ class VertexAgent(Agent):
 
         image = get_flow_image(flow_run)
         job_name = slugify.slugify(
-            flow_run.flow.name + "-" + flow_run.name,
+            f"{flow_run.flow.name}-{flow_run.name}",
             max_length=255,
             word_boundary=True,
             save_order=True,
         )
+
         machine_type = run_config.machine_type
 
         command = get_flow_run_command(flow_run)
@@ -193,16 +192,9 @@ class VertexAgent(Agent):
 
         run_config = self._get_run_config(flow_run, VertexRun)
 
-        env = {}
-        # Populate environment variables, later sources overriding
-
-        # 1. Logging level from config
-        # Default to the config logging level, allowing it to be overriden
-        # by later config soruces
-        env.update({"PREFECT__LOGGING__LEVEL": config.logging.level})
-
+        env = {"PREFECT__LOGGING__LEVEL": config.logging.level}
         # 2. Values set on the agent via `--env`
-        env.update(self.env_vars)
+        env |= self.env_vars
 
         # 3. Values set on a RunConfig (if present)
         if run_config is not None and run_config.env is not None:
@@ -237,7 +229,4 @@ class VertexAgent(Agent):
 
     def _to_env_list(self, env: dict) -> List[dict]:
         """Convert from dictionary to the expected vertex env list format"""
-        env_list = []
-        for k, v in env.items():
-            env_list.append({"name": k, "value": v})
-        return env_list
+        return [{"name": k, "value": v} for k, v in env.items()]

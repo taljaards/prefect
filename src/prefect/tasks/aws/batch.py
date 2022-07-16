@@ -35,11 +35,7 @@ class BatchSubmit(Task):
         self.job_definition = job_definition
         self.job_queue = job_queue
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     @defaults_from_attrs("job_name", "job_definition", "job_queue")

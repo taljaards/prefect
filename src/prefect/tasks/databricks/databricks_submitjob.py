@@ -1046,7 +1046,7 @@ class DatabricksSubmitMultitaskRun(Task):
             raise ValueError(
                 "Databricks connection info must be supplied as a dictionary."
             )
-        if tasks is None or len(tasks) < 1:
+        if tasks is None or not tasks:
             raise ValueError("Please supply at least one Databricks task to be run.")
         run_name = (
             run_name

@@ -114,7 +114,7 @@ class HightouchRunSync(Task):
             set with your Hightouch API key."""
             raise ValueError(msg)
 
-        key = api_key if api_key else os.environ[api_key_env_var]
+        key = api_key or os.environ[api_key_env_var]
 
         if not sync_id:
             msg = """`sync_id` has not been provided. Please provide the ID for the

@@ -42,4 +42,4 @@ def project(name):
         click.secho("Error deleting project", fg="red")
         return
 
-    click.secho("{} deleted".format(name), fg="green")
+    click.secho(f"{name} deleted", fg="green")

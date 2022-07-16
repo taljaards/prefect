@@ -64,7 +64,7 @@ def project(name, description, skip_if_exists):
             }
         )
         if result.data.project:
-            click.secho("{} already exists".format(name), fg="green")
+            click.secho(f"{name} already exists", fg="green")
             return
 
     try:
@@ -74,4 +74,4 @@ def project(name, description, skip_if_exists):
         click.secho("Error creating project", fg="red")
         return
 
-    click.secho("{} created".format(name), fg="green")
+    click.secho(f"{name} created", fg="green")

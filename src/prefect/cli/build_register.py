@@ -103,10 +103,10 @@ def expand_paths(paths: List[str]) -> List[str]:
     out = []
     globbed_paths = set()
     for path in tuple(paths):
-        found_paths = glob.glob(path, recursive=True)
-        if not found_paths:
+        if found_paths := glob.glob(path, recursive=True):
+            globbed_paths.update(found_paths)
+        else:
             raise TerminalError(f"Path {path!r} doesn't exist")
-        globbed_paths.update(found_paths)
     for path in globbed_paths:
         if os.path.isdir(path):
             with os.scandir(path) as directory:
@@ -267,8 +267,9 @@ def collect_flows(
             source: [f for f in flows if f.name in names]
             for source, flows in out.items()
         }
-        missing = names.difference(f.name for flows in out.values() for f in flows)
-        if missing:
+        if missing := names.difference(
+            f.name for flows in out.values() for f in flows
+        ):
             missing_flows = "\n".join(f"- {n}" for n in sorted(missing))
             click.secho(
                 f"Failed to find the following flows:\n{missing_flows}", fg="red"
@@ -578,13 +579,11 @@ def watch_for_changes(
     that changed.
     """
     paths = list(paths or ())
-    modules = list(modules or ())
-
     for path in paths:
         if not os.path.exists(path):
             raise TerminalError(f"Path {path!r} doesn't exist")
 
-    if modules:
+    if modules := list(modules or ()):
         # If modules are provided, we need to convert these to paths to watch.
         # There's no way in Python to do this without possibly importing the
         # defining module. As such, we run the command in a temporary process

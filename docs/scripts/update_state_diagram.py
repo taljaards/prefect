@@ -14,12 +14,13 @@ state_nodes = set()
 def create_node(state):
     if state not in state_nodes:
         graph.node(
-            str(id(state)),
+            id(state),
             state.__name__,
-            color=state.color + "99",
+            color=f"{state.color}99",
             style="filled",
             colorscheme="svg",
         )
+
         state_nodes.add(state)
 
 
@@ -27,7 +28,7 @@ def add_downstreams(state):
     create_node(state)
     for substate in state.__subclasses__():
         create_node(substate)
-        graph.edge(str(id(state)), str(id(substate)))
+        graph.edge(id(state), id(substate))
         add_downstreams(substate)
 
 

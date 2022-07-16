@@ -50,10 +50,11 @@ def is_serializable(obj: Any, raise_on_error: bool = False) -> bool:
             sf.write(template.format(binary_file))
         try:
             subprocess.check_output(
-                "{} {}".format(sys.executable, script_file),
+                f"{sys.executable} {script_file}",
                 shell=True,
                 stderr=subprocess.STDOUT,
             )
+
         except subprocess.CalledProcessError as exc:
             if raise_on_error:
                 raise exc

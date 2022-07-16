@@ -51,5 +51,4 @@ class SodaSparkScan(Task):
         if df is None:
             raise ValueError("df cannot be None")
 
-        result = scan.execute(scan_definition=scan_def, df=df)
-        return result
+        return scan.execute(scan_definition=scan_def, df=df)

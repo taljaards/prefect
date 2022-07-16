@@ -71,7 +71,7 @@ def get_kubernetes_client(
             logger.debug("Loading incluster configuration")
             kube_config.load_incluster_config()
         except ConfigException as exc:
-            logger.warning("{} Using out of cluster configuration option.".format(exc))
+            logger.warning(f"{exc} Using out of cluster configuration option.")
             logger.debug("Loading out of cluster configuration")
             kube_config.load_kube_config()
 

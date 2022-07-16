@@ -163,16 +163,15 @@ def projects(name):
 
     project_data = result.data.project
 
-    output = []
-    for item in project_data:
-        output.append(
-            [
-                item.name,
-                item.flows_aggregate.aggregate.count,
-                pendulum.parse(item.created).diff_for_humans(),
-                item.description,
-            ]
-        )
+    output = [
+        [
+            item.name,
+            item.flows_aggregate.aggregate.count,
+            pendulum.parse(item.created).diff_for_humans(),
+            item.description,
+        ]
+        for item in project_data
+    ]
 
     click.echo(
         tabulate(
@@ -349,18 +348,17 @@ def tasks(name, flow_name, flow_version, project, limit):
 
     task_data = result.data.task
 
-    output = []
-    for item in task_data:
-        output.append(
-            [
-                item.name,
-                item.flow.name,
-                item.flow.version,
-                pendulum.parse(item.created).diff_for_humans(),
-                item.mapped,
-                item.type,
-            ]
-        )
+    output = [
+        [
+            item.name,
+            item.flow.name,
+            item.flow.version,
+            pendulum.parse(item.created).diff_for_humans(),
+            item.mapped,
+            item.type,
+        ]
+        for item in task_data
+    ]
 
     click.echo(
         tabulate(
@@ -431,7 +429,7 @@ def logs(name, id, info):
 
     flow_run = result.data.flow_run
     if not flow_run:
-        click.secho("{} not found".format(name), fg="red")
+        click.secho(f"{name} not found", fg="red")
         return
 
     run = flow_run[0]
@@ -439,9 +437,7 @@ def logs(name, id, info):
     output = []
 
     if not info:
-        for log in logs:
-            output.append([log.timestamp, log.level, log.message])
-
+        output.extend([log.timestamp, log.level, log.message] for log in logs)
         click.echo(
             tabulate(
                 output,

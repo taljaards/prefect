@@ -146,37 +146,30 @@ class DaskExecutor(Executor):
         if address is None:
             address = context.config.engine.executor.dask.address or None
 
-        if address is not None:
-            if cluster_class is not None or cluster_kwargs is not None:
-                raise ValueError(
-                    "Cannot specify `address` and `cluster_class`/`cluster_kwargs`"
-                )
-        else:
+        if address is None:
             if cluster_class is None:
                 cluster_class = context.config.engine.executor.dask.cluster_class
             if isinstance(cluster_class, str):
                 cluster_class = import_object(cluster_class)
-            if cluster_kwargs is None:
-                cluster_kwargs = {}
-            else:
-                cluster_kwargs = cluster_kwargs.copy()
-
+            cluster_kwargs = {} if cluster_kwargs is None else cluster_kwargs.copy()
             from distributed.deploy.local import LocalCluster
 
             if cluster_class == LocalCluster:
                 if debug is None:
                     debug = context.config.debug
                 cluster_kwargs.setdefault(
-                    "silence_logs", logging.CRITICAL if not debug else logging.WARNING
+                    "silence_logs", logging.WARNING if debug else logging.CRITICAL
                 )
+
 
             if adapt_kwargs is None:
                 adapt_kwargs = {}
 
-        if client_kwargs is None:
-            client_kwargs = {}
-        else:
-            client_kwargs = client_kwargs.copy()
+        elif cluster_class is not None or cluster_kwargs is not None:
+            raise ValueError(
+                "Cannot specify `address` and `cluster_class`/`cluster_kwargs`"
+            )
+        client_kwargs = {} if client_kwargs is None else client_kwargs.copy()
         client_kwargs.setdefault("set_as_default", False)
 
         self.address = address
@@ -352,8 +345,7 @@ class DaskExecutor(Executor):
                 pass
             # 2.) Wait for all running tasks to complete
             try:
-                futures = [f for f in list(self._futures) if not f.done()]  # type: ignore
-                if futures:
+                if futures := [f for f in list(self._futures) if not f.done()]:
                     self.logger.info(
                         "Stopping executor, waiting for %d active tasks to complete",
                         len(futures),
@@ -377,14 +369,13 @@ class DaskExecutor(Executor):
 
         # infer from context if dask resources are being utilized
         task_tags = extra_context.get("task_tags", [])
-        dask_resource_tags = [
+        if dask_resource_tags := [
             tag for tag in task_tags if tag.lower().startswith("dask-resource")
-        ]
-        if dask_resource_tags:
+        ]:
             resources = {}
             for tag in dask_resource_tags:
                 prefix, val = tag.split("=")
-                resources.update({prefix.split(":")[1]: float(val)})
+                resources[prefix.split(":")[1]] = float(val)
             dask_kwargs.update(resources=resources)
 
         return dask_kwargs
@@ -424,7 +415,7 @@ class DaskExecutor(Executor):
         if self.client is None:
             raise ValueError("This executor has not been started.")
 
-        kwargs.update(self._prep_dask_kwargs(extra_context))
+        kwargs |= self._prep_dask_kwargs(extra_context)
         if self._should_run_event is None:
             fut = self.client.submit(fn, *args, **kwargs)
         else:
@@ -460,8 +451,7 @@ class DaskExecutor(Executor):
         )
         try:
             with open(self.performance_report_path, "r", encoding="utf-8") as f:
-                report = f.read()
-                return report
+                return f.read()
         except Exception as exc:
             self.logger.error(
                 f"Failed to get dask performance report with exception {exc}"
@@ -496,11 +486,11 @@ class LocalDaskExecutor(Executor):
     @staticmethod
     def _normalize_scheduler(scheduler: str) -> str:
         scheduler = scheduler.lower()
-        if scheduler in ("threads", "threading"):
+        if scheduler in {"threads", "threading"}:
             return "threads"
-        elif scheduler in ("processes", "multiprocessing"):
+        elif scheduler in {"processes", "multiprocessing"}:
             return "processes"
-        elif scheduler in ("sync", "synchronous", "single-threaded"):
+        elif scheduler in {"sync", "synchronous", "single-threaded"}:
             return "synchronous"
         else:
             raise ValueError(f"Unknown scheduler {scheduler!r}")
@@ -544,11 +534,7 @@ class LocalDaskExecutor(Executor):
             import ctypes
 
             # signature of this method changed in python 3.7
-            if sys.version_info >= (3, 7):
-                id_type = ctypes.c_ulong
-            else:
-                id_type = ctypes.c_long
-
+            id_type = ctypes.c_ulong if sys.version_info >= (3, 7) else ctypes.c_long
             for t in self._pool._threads:  # type: ignore
                 ctypes.pythonapi.PyThreadState_SetAsyncExc(
                     id_type(t.ident), ctypes.py_object(KeyboardInterrupt)

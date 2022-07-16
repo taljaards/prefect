@@ -238,7 +238,7 @@ class Flow:
         """
         new = copy.copy(self)
         # create a new cache
-        new._cache = dict()
+        new._cache = {}
         new.constants = self.constants.copy()
         new.tasks = self.tasks.copy()
         new.edges = self.edges.copy()
@@ -389,7 +389,7 @@ class Flow:
         Returns:
             - set of Task objects that have no upstream dependencies
         """
-        return set(t for t in self.tasks if not self.edges_to(t))
+        return {t for t in self.tasks if not self.edges_to(t)}
 
     @cache
     def terminal_tasks(self) -> Set[Task]:
@@ -399,7 +399,7 @@ class Flow:
         Returns:
             - set of Task objects that have no downstream dependencies
         """
-        return set(t for t in self.tasks if not self.edges_from(t))
+        return {t for t in self.tasks if not self.edges_from(t)}
 
     def parameters(self) -> Set[Parameter]:
         """
@@ -523,15 +523,13 @@ class Flow:
             - ValueError: if the `task.slug` matches that of a task already in the flow
         """
         if not isinstance(task, Task):
-            raise TypeError(
-                "Tasks must be Task instances (received {})".format(type(task))
-            )
+            raise TypeError(f"Tasks must be Task instances (received {type(task)})")
         elif task not in self.tasks:
             if task.slug and task.slug in self.slugs.values():
                 raise ValueError(
-                    'A task with the slug "{}" already exists in this '
-                    "flow.".format(task.slug)
+                    f'A task with the slug "{task.slug}" already exists in this flow.'
                 )
+
             self.slugs[task] = task.slug or self._generate_task_slug(task)
 
             self.tasks.add(task)
@@ -672,14 +670,12 @@ class Flow:
         Returns:
             - A list of Edge objects added to the flow
         """
-        edges = []
-        for u_task, d_task in zip(tasks, tasks[1:]):
-            edges.append(
-                self.add_edge(
-                    upstream_task=u_task, downstream_task=d_task, validate=validate
-                )
+        return [
+            self.add_edge(
+                upstream_task=u_task, downstream_task=d_task, validate=validate
             )
-        return edges
+            for u_task, d_task in zip(tasks, tasks[1:])
+        ]
 
     def update(
         self,
@@ -810,7 +806,7 @@ class Flow:
         Returns:
             - set of Task objects which are upstream of `task`
         """
-        return set(e.upstream_task for e in self.edges_to(task))
+        return {e.upstream_task for e in self.edges_to(task)}
 
     def downstream_tasks(self, task: Task) -> Set[Task]:
         """
@@ -822,7 +818,7 @@ class Flow:
         Returns:
             - set of Task objects which are downstream of `task`
         """
-        return set(e.downstream_task for e in self.edges_from(task))
+        return {e.downstream_task for e in self.edges_from(task)}
 
     def validate(self) -> None:
         """
@@ -1068,9 +1064,7 @@ class Flow:
                 now = pendulum.now("utc")
                 naptime = max((next_run_time - now).total_seconds(), 0)
                 if naptime > 0:
-                    self.logger.info(
-                        "Waiting for next scheduled run at {}".format(next_run_time)
-                    )
+                    self.logger.info(f"Waiting for next scheduled run at {next_run_time}")
                 time.sleep(naptime)
 
             error = False
@@ -1117,23 +1111,20 @@ class Flow:
                         )
 
                 earliest_start = min(
-                    [
+                    (
                         s.start_time
                         for s in task_states
                         if s.is_scheduled() and s.start_time is not None
-                    ],
+                    ),
                     default=pendulum.now("utc"),
                 )
+
 
                 # wait until first task is ready for retry
                 now = pendulum.now("utc")
                 naptime = max((earliest_start - now).total_seconds(), 0)
                 if naptime > 0:
-                    self.logger.info(
-                        "Waiting for next available Task run at {}".format(
-                            earliest_start
-                        )
-                    )
+                    self.logger.info(f"Waiting for next available Task run at {earliest_start}")
                 time.sleep(naptime)
 
             # create next scheduled run
@@ -1163,13 +1154,12 @@ class Flow:
                     prefect.context.caches[t.cache_key or t.name] = fresh_states
 
             try:
-                if run_on_schedule and self.schedule is not None:
-                    next_run_event = self.schedule.next(1, return_events=True)[0]
-                    next_run_time = next_run_event.start_time  # type: ignore
-                    parameters = base_parameters.copy()
-                    parameters.update(next_run_event.parameter_defaults)  # type: ignore
-                else:
+                if not run_on_schedule or self.schedule is None:
                     break
+                next_run_event = self.schedule.next(1, return_events=True)[0]
+                next_run_time = next_run_event.start_time  # type: ignore
+                parameters = base_parameters.copy()
+                parameters.update(next_run_event.parameter_defaults)  # type: ignore
             except IndexError:
                 # Handle when there are no more events on schedule
                 break
@@ -1249,29 +1239,25 @@ class Flow:
             if p.name in kwargs:
                 parameters[p.name] = kwargs.pop(p.name)
 
-        # check for parameters that don't match the flow
-        unknown_params = [
+        if unknown_params := [
             p for p in parameters if p not in {fp.name for fp in self.parameters()}
-        ]
-        if unknown_params:
+        ]:
             fmt_params = ", ".join(unknown_params)
             raise ValueError(
-                "Flow.run received the following unexpected parameters: {}".format(
-                    fmt_params
-                )
+                f"Flow.run received the following unexpected parameters: {fmt_params}"
             )
 
-        # check for parameters that are required by the flow, but weren't passed
-        missing_params = [
-            p.name for p in self.parameters() if p.required and p.name not in parameters
-        ]
-        if missing_params:
+
+        if missing_params := [
+            p.name
+            for p in self.parameters()
+            if p.required and p.name not in parameters
+        ]:
             fmt_params = ", ".join(missing_params)
             raise ValueError(
-                "Flow.run did not receive the following required parameters: {}".format(
-                    fmt_params
-                )
+                f"Flow.run did not receive the following required parameters: {fmt_params}"
             )
+
 
         # set global caches that persist across runs
         prefect.context.setdefault("caches", {})
@@ -1352,7 +1338,7 @@ class Flow:
                 state = flow_state.result.get(task)
             if state is not None:
                 assert state is not None  # mypy assert
-                return state.color + "80"
+                return f"{state.color}80"
             return "#00000080"
 
         graph = graphviz.Digraph()
@@ -1378,19 +1364,18 @@ class Flow:
                             style="filled",
                             colorscheme="svg",
                         )
-                        graph.node(
-                            str(id(t)) + str(map_index), name, shape=shape, **kwargs
-                        )
+                        graph.node(id(t) + str(map_index), name, shape=shape, **kwargs)
                 else:
                     kwargs = dict(color=get_color(t), style="filled", colorscheme="svg")
-                    graph.node(str(id(t)), name, shape=shape, **kwargs)
+                    graph.node(id(t), name, shape=shape, **kwargs)
             else:
                 kwargs = (
-                    {}
-                    if not flow_state
-                    else dict(color=get_color(t), style="filled", colorscheme="svg")
+                    dict(color=get_color(t), style="filled", colorscheme="svg")
+                    if flow_state
+                    else {}
                 )
-                graph.node(str(id(t)), name, shape=shape, **kwargs)
+
+                graph.node(id(t), name, shape=shape, **kwargs)
 
         for e in self.edges:
             style = "dashed" if e.mapped else None
@@ -1402,45 +1387,36 @@ class Flow:
                 down_state = flow_state.result[e.downstream_task]
                 if down_state.is_mapped():
                     for map_index, _ in enumerate(down_state.map_states):
-                        upstream_id = str(id(e.upstream_task))
+                        upstream_id = id(e.upstream_task)
                         if any(edge.mapped for edge in self.edges_to(e.upstream_task)):
                             upstream_id += str(map_index)
                         graph.edge(
                             upstream_id,
-                            str(id(e.downstream_task)) + str(map_index),
+                            id(e.downstream_task) + str(map_index),
                             e.key,
                             style=style,
                         )
+
                 else:
-                    graph.edge(
-                        str(id(e.upstream_task)),
-                        str(id(e.downstream_task)),
-                        e.key,
-                        style=style,
-                    )
-            # this edge represents a "reduce" step from a mapped task -> normal task
+                    graph.edge(id(e.upstream_task), id(e.downstream_task), e.key, style=style)
             elif flow_state and flow_state.result[e.upstream_task].is_mapped():
                 assert isinstance(flow_state.result, dict)  # mypy assert
                 up_state = flow_state.result[e.upstream_task]
 
                 for map_index, _ in enumerate(up_state.map_states):
-                    downstream_id = str(id(e.downstream_task))
+                    downstream_id = id(e.downstream_task)
                     if any(edge.mapped for edge in self.edges_to(e.downstream_task)):
                         downstream_id += str(map_index)
 
                     graph.edge(
-                        str(id(e.upstream_task)) + str(map_index),
+                        id(e.upstream_task) + str(map_index),
                         downstream_id,
                         e.key,
                         style=style,
                     )
+
             else:
-                graph.edge(
-                    str(id(e.upstream_task)),
-                    str(id(e.downstream_task)),
-                    e.key,
-                    style=style,
-                )
+                graph.edge(id(e.upstream_task), id(e.downstream_task), e.key, style=style)
 
         if filename:
             graph.render(filename, view=False, format=format, cleanup=True)
@@ -1571,10 +1547,8 @@ class Flow:
 
         if not os.path.isabs(fpath):
             path = "{home}/flows".format(home=prefect.context.config.home_dir)  # type: ignore
-            fpath = Path(os.path.expanduser(path)) / "{}.prefect".format(  # type: ignore
-                slugify(fpath)
-            )  # type: ignore
-        with open(str(fpath), "rb") as f:
+            fpath = (Path(os.path.expanduser(path)) / f"{slugify(fpath)}.prefect")
+        with open(fpath, "rb") as f:
             return flow_from_bytes_pickle(f.read())
 
     def save(self, fpath: str = None) -> str:
@@ -1593,17 +1567,19 @@ class Flow:
 
         if fpath is None:
             path = "{home}/flows".format(home=prefect.context.config.home_dir)  # type: ignore
-            fpath = Path(  # type: ignore
-                os.path.expanduser(path)  # type: ignore
-            ) / "{}.prefect".format(  # type: ignore
-                slugify(self.name)
+            fpath = (
+                Path(  # type: ignore
+                    os.path.expanduser(path)  # type: ignore
+                )
+                / f"{slugify(self.name)}.prefect"
             )
+
             assert fpath is not None  # mypy assert
             fpath.parent.mkdir(exist_ok=True, parents=True)
-        with open(str(fpath), "wb") as f:
+        with open(fpath, "wb") as f:
             f.write(flow_to_bytes_pickle(self))
 
-        return str(fpath)
+        return fpath
 
     def run_agent(
         self,
@@ -1636,10 +1612,7 @@ class Flow:
             ),
         }
         with set_temporary_config(temp_config):
-            if self.run_config is not None:
-                labels = list(self.run_config.labels or ())
-            else:
-                labels = []
+            labels = [] if self.run_config is None else list(self.run_config.labels or ())
             agent = prefect.agent.local.LocalAgent(
                 labels=labels, show_flow_logs=show_flow_logs
             )
@@ -1723,7 +1696,7 @@ class Flow:
 
         client = prefect.Client()
 
-        registered_flow = client.register(
+        return client.register(
             flow=self,
             build=build,
             project_name=project_name,
@@ -1732,7 +1705,6 @@ class Flow:
             no_url=no_url,
             idempotency_key=idempotency_key,
         )
-        return registered_flow
 
     def __mifflin__(self) -> None:  # coverage: ignore
         "Calls Dunder Mifflin"

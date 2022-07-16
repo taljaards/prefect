@@ -77,11 +77,11 @@ class Schedule:
 
     @property
     def start_date(self) -> Optional[datetime]:
-        return min([c.start_date for c in self.clocks if c.start_date], default=None)
+        return min((c.start_date for c in self.clocks if c.start_date), default=None)
 
     @property
     def end_date(self) -> Optional[datetime]:
-        return max([c.end_date for c in self.clocks if c.end_date], default=None)
+        return max((c.end_date for c in self.clocks if c.end_date), default=None)
 
     def next(
         self, n: int, after: datetime = None, return_events: bool = False
@@ -134,15 +134,9 @@ class Schedule:
         clock_events = [clock.events(after=after) for clock in self.clocks]
         sorted_events = heapq.merge(*clock_events)
 
-        # this next line yields items only if they differ from the previous item, which means
-        # this generator only yields unique events (since the input is sorted)
-        #
-        # code from `unique_justseen()` at
-        # https://docs.python.org/3/library/itertools.html#itertools-recipes
-        unique_events = map(
+        yield from map(
             next, map(operator.itemgetter(1), itertools.groupby(sorted_events))
-        )  # type: Iterable[prefect.schedules.clocks.ClockEvent]
-        yield from unique_events
+        )
 
     def _check_filters(self, dt: datetime) -> bool:
         """

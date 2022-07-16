@@ -21,10 +21,7 @@ def get_parameters(obj: prefect.Flow, context: dict) -> List:
     else:
         params = utils.get_value(obj, "parameters")
 
-    if params is missing:
-        return params
-
-    return sorted(params, key=lambda p: p.slug)
+    return params if params is missing else sorted(params, key=lambda p: p.slug)
 
 
 def get_reference_tasks(obj: prefect.Flow, context: dict) -> List:
@@ -33,10 +30,7 @@ def get_reference_tasks(obj: prefect.Flow, context: dict) -> List:
     else:
         tasks = utils.get_value(obj, "reference_tasks")
 
-    if tasks is missing:
-        return tasks
-
-    return sorted(tasks, key=lambda t: t.slug)
+    return tasks if tasks is missing else sorted(tasks, key=lambda t: t.slug)
 
 
 def get_tasks(obj: prefect.Flow, context: dict) -> List:
@@ -45,10 +39,7 @@ def get_tasks(obj: prefect.Flow, context: dict) -> List:
     else:
         tasks = utils.get_value(obj, "tasks")
 
-    if tasks is missing:
-        return tasks
-
-    return list(sorted(tasks, key=lambda t: t.slug))
+    return tasks if tasks is missing else list(sorted(tasks, key=lambda t: t.slug))
 
 
 def get_edges(obj: prefect.Flow, context: dict) -> List:
@@ -109,5 +100,4 @@ class FlowSchema(ObjectSchema):
 
         """
         data["validate"] = False
-        flow = super().create_object(data)
-        return flow
+        return super().create_object(data)

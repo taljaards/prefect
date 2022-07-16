@@ -184,7 +184,7 @@ class PullImage(Task):
                 **(extra_docker_kwargs or dict()),
             )
             if isinstance(api_result, str):
-                return "".join(line for line in api_result.split("\r"))
+                return "".join(api_result.split("\r"))
             for line in api_result:
                 status_line = line.get("status")
                 if status_line and stream_logs:
@@ -554,9 +554,8 @@ class BuildImage(Task):
 
         client = docker.APIClient(base_url=docker_server_url, version="auto")
 
-        payload = [
-            line
-            for line in client.build(
+        payload = list(
+            client.build(
                 path=path,
                 tag=tag,
                 nocache=nocache,
@@ -564,7 +563,8 @@ class BuildImage(Task):
                 forcerm=forcerm,
                 **(extra_docker_kwargs or dict()),
             )
-        ]
+        )
+
         self.logger.debug(f"Built image from {path} with tag {tag}")
         output = [
             json.loads(line.decode("utf-8"))

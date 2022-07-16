@@ -59,14 +59,13 @@ def generate_new_section(version):
             if not isinstance(data, dict):
                 raise bad_entry(path)
             for k, v in data.items():
-                if k in changes:
-                    if isinstance(v, list) and all(isinstance(i, str) for i in v):
-                        changes[k].extend(v)
-                    else:
-                        raise bad_entry(path)
-                else:
+                if k not in changes:
                     raise bad_entry(path)
 
+                if isinstance(v, list) and all(isinstance(i, str) for i in v):
+                    changes[k].extend(v)
+                else:
+                    raise bad_entry(path)
     # Build up subsections
     sections = []
     for name, header in SECTIONS:
@@ -74,7 +73,7 @@ def generate_new_section(version):
         if name in DEDUPLICATE_SECTIONS:
             values = sorted(set(values))
         if values:
-            text = "\n".join("- %s" % v for v in values)
+            text = "\n".join(f"- {v}" for v in values)
             sections.append(f"### {header}\n\n{text}")
 
     # Build new release section

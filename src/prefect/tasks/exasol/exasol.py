@@ -363,11 +363,7 @@ class ExasolImportFromIterable(Task):
         if not password and self.password_secret:
             password = Secret(self.password_secret).get()
 
-        if not target_schema:
-            target = target_table
-        else:
-            target = (target_schema, target_table)
-
+        target = (target_schema, target_table) if target_schema else target_table
         con = pyexasol.connect(
             dsn=dsn,
             user=user,

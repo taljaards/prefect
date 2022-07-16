@@ -71,11 +71,11 @@ class GCSResult(Result):
 
         new = self.format(**kwargs)
         new.value = value_
-        self.logger.debug("Starting to upload result to {}...".format(new.location))
+        self.logger.debug(f"Starting to upload result to {new.location}...")
         binary_data = new.serializer.serialize(new.value)
 
         self.gcs_bucket.blob(new.location).upload_from_string(binary_data)
-        self.logger.debug("Finished uploading result to {}.".format(new.location))
+        self.logger.debug(f"Finished uploading result to {new.location}.")
 
         return new
 
@@ -93,7 +93,7 @@ class GCSResult(Result):
         new.location = location
 
         try:
-            self.logger.debug("Starting to download result from {}...".format(location))
+            self.logger.debug(f"Starting to download result from {location}...")
             blob = self.gcs_bucket.blob(location)
             # Support GCS < 1.31
             serialized_value = (
@@ -105,13 +105,12 @@ class GCSResult(Result):
                 new.value = new.serializer.deserialize(serialized_value)
             except EOFError:
                 new.value = None
-            self.logger.debug("Finished downloading result from {}.".format(location))
+            self.logger.debug(f"Finished downloading result from {location}.")
         except Exception as exc:
             self.logger.exception(
-                "Unexpected error while reading from result handler: {}".format(
-                    repr(exc)
-                )
+                f"Unexpected error while reading from result handler: {repr(exc)}"
             )
+
             raise exc
         return new
 

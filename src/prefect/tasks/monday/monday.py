@@ -79,7 +79,7 @@ class CreateItem(Task):
             "ITEM_NAME": item_name,
         }
         if column_values:
-            variables.update({"COLUMN_VALUES": json.dumps(column_values)})
+            variables["COLUMN_VALUES"] = json.dumps(column_values)
 
         query = """
             mutation (
@@ -106,4 +106,4 @@ class CreateItem(Task):
         if response.status_code == 200:
             return response.json()["data"]["create_item"]["id"]
         else:
-            raise Exception("Query failed {}. {}".format(response.status_code, query))
+            raise Exception(f"Query failed {response.status_code}. {query}")

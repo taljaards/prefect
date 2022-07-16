@@ -203,7 +203,7 @@ class PandasSerializer(Serializer):
             serialization_method(string_buffer, **self.serialize_kwargs)
             return string_buffer.getvalue().encode()
 
-    def deserialize(self, value: bytes) -> "pd.DataFrame":  # noqa: F821
+    def deserialize(self, value: bytes) -> "pd.DataFrame":    # noqa: F821
         """
         Deserialize an object to a Pandas DataFrame
 
@@ -215,8 +215,7 @@ class PandasSerializer(Serializer):
         """
         deserialization_method = self._get_deserialize_method()
         buffer = io.BytesIO(value)
-        deserialized_data = deserialization_method(buffer, **self.deserialize_kwargs)
-        return deserialized_data
+        return deserialization_method(buffer, **self.deserialize_kwargs)
 
     def __eq__(self, other: Any) -> bool:
         if type(self) == type(other):
@@ -234,10 +233,10 @@ class PandasSerializer(Serializer):
         import pandas as pd
 
         try:
-            return getattr(pd, "read_{}".format(self.file_type))
+            return getattr(pd, f"read_{self.file_type}")
         except AttributeError as exc:
             raise ValueError(
-                "Could not find deserialization methods for {}".format(self.file_type)
+                f"Could not find deserialization methods for {self.file_type}"
             ) from exc
 
     def _get_serialize_method(self, dataframe: "pd.DataFrame" = None) -> Callable:
@@ -247,10 +246,10 @@ class PandasSerializer(Serializer):
             # If you just want to test if the method exists, create an empty dataframe
             dataframe = pd.DataFrame()
         try:
-            return getattr(dataframe, "to_{}".format(self.file_type))
+            return getattr(dataframe, f"to_{self.file_type}")
         except AttributeError as exc:
             raise ValueError(
-                "Could not find serialization methods for {}".format(self.file_type)
+                f"Could not find serialization methods for {self.file_type}"
             ) from exc
 
 

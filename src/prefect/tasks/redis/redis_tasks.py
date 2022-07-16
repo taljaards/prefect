@@ -110,11 +110,9 @@ class RedisSet(Task):
             **self.redis_connection_params
         )
 
-        result = connection.set(
+        return connection.set(
             name=redis_key, value=redis_val, ex=ex, px=px, nx=nx, xx=xx
         )
-
-        return result
 
 
 class RedisGet(Task):
@@ -182,9 +180,7 @@ class RedisGet(Task):
             **self.redis_connection_params
         )
 
-        result = connection.get(name=redis_key)
-
-        return result
+        return connection.get(name=redis_key)
 
 
 class RedisExecute(Task):
@@ -249,6 +245,4 @@ class RedisExecute(Task):
             **self.redis_connection_params
         )
 
-        result = connection.execute_command(redis_cmd)
-
-        return result
+        return connection.execute_command(redis_cmd)

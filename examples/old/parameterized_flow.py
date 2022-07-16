@@ -15,12 +15,12 @@ def check_if_even(value):
 
 @task
 def print_odd(value):
-    print("{} is odd!".format(value))
+    print(f"{value} is odd!")
 
 
 @task
 def print_even(value):
-    print("{} is even!".format(value))
+    print(f"{value} is even!")
 
 
 with Flow("Check Even/Odd") as f:

@@ -139,7 +139,7 @@ class _GaugeToGatewayBase(Task):
                 f"labels length is {len(labels)}."
             )
 
-        if len(values) == 0 or len(labels) == 0:
+        if not values or not labels:
             return
 
         GroupingValues = namedtuple(

@@ -75,11 +75,12 @@ class OpenGitHubIssue(Task):
         # the 'import prefect' time low
         import requests
 
-        url = "https://api.github.com/repos/{}/issues".format(repo)
+        url = f"https://api.github.com/repos/{repo}/issues"
         headers = {
-            "AUTHORIZATION": "token {}".format(token),
+            "AUTHORIZATION": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+
         issue = {"title": title, "body": body, "labels": labels}
 
         # send the request

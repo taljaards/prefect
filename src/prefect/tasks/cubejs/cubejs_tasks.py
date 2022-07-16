@@ -161,7 +161,7 @@ class CubeJSQueryTask(Task):
         if not query:
             raise ValueError("Missing `query`.")
 
-        secret = api_secret if api_secret else os.environ[api_secret_env_var]
+        secret = api_secret or os.environ[api_secret_env_var]
 
         wait_api_call_secs = (
             wait_time_between_api_calls if wait_time_between_api_calls > 0 else 10
@@ -178,9 +178,6 @@ class CubeJSQueryTask(Task):
 
         params = {"query": json.dumps(query)}
 
-        # Retrieve data from Cube.js
-        data = cubejs_client.get_data(
+        return cubejs_client.get_data(
             params=params, include_generated_sql=include_generated_sql
         )
-
-        return data

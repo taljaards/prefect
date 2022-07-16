@@ -37,7 +37,7 @@ def check_override_auth_token():
 def abort_on_config_api_key(message: str = None):
     if config.cloud.get("api_key"):
         # Add a leading space if not null
-        message = (" " + message) if message else ""
+        message = f" {message}" if message else ""
         raise TerminalError(
             "Your API key is set in the Prefect config instead of with the CLI."
             + message
@@ -157,33 +157,29 @@ def logout(token):
 
     client = Client()
 
-    # Log out of API keys unless given the token flag
-    if client.api_key and not token:
-
-        # Check the source of the API key
-        abort_on_config_api_key(
-            "To log out, remove the config key `prefect.cloud.api_key`"
-        )
-
-        click.confirm(
-            "Are you sure you want to log out of Prefect Cloud? "
-            "This will remove your API key from this machine.",
-            default=False,
-            abort=True,
-        )
-
-        # Clear the key and tenant id then write to the cache
-        client.api_key = ""
-        client._tenant_id = ""
-        client.save_auth_to_disk()
-
-        click.secho("Logged out of Prefect Cloud", fg="green")
-
-    else:
+    if not client.api_key or token:
         raise TerminalError(
             "You are not logged in to Prefect Cloud. "
             "Use `prefect auth login` to log in first."
         )
+    # Check the source of the API key
+    abort_on_config_api_key(
+        "To log out, remove the config key `prefect.cloud.api_key`"
+    )
+
+    click.confirm(
+        "Are you sure you want to log out of Prefect Cloud? "
+        "This will remove your API key from this machine.",
+        default=False,
+        abort=True,
+    )
+
+    # Clear the key and tenant id then write to the cache
+    client.api_key = ""
+    client._tenant_id = ""
+    client.save_auth_to_disk()
+
+    click.secho("Logged out of Prefect Cloud", fg="green")
 
 
 @auth.command()

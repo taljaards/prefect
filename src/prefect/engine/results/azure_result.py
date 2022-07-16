@@ -111,7 +111,7 @@ class AzureResult(Result):
         new = self.format(**kwargs)
         new.value = value_
 
-        self.logger.debug("Starting to upload result to {}...".format(new.location))
+        self.logger.debug(f"Starting to upload result to {new.location}...")
 
         # prepare data
         binary_data = new.serializer.serialize(new.value)
@@ -122,7 +122,7 @@ class AzureResult(Result):
         )
         client.upload_blob(binary_data)
 
-        self.logger.debug("Finished uploading result to {}.".format(new.location))
+        self.logger.debug(f"Finished uploading result to {new.location}.")
 
         return new
 
@@ -140,7 +140,7 @@ class AzureResult(Result):
         new.location = location
 
         try:
-            self.logger.debug("Starting to download result from {}...".format(location))
+            self.logger.debug(f"Starting to download result from {location}...")
 
             # initialize client and download
             client = self.service.get_blob_client(
@@ -152,13 +152,12 @@ class AzureResult(Result):
                 new.value = new.serializer.deserialize(content_bytes)
             except EOFError:
                 new.value = None
-            self.logger.debug("Finished downloading result from {}.".format(location))
+            self.logger.debug(f"Finished downloading result from {location}.")
         except Exception as exc:
             self.logger.exception(
-                "Unexpected error while reading from result handler: {}".format(
-                    repr(exc)
-                )
+                f"Unexpected error while reading from result handler: {repr(exc)}"
             )
+
             raise exc
         return new
 

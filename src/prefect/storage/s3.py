@@ -91,7 +91,7 @@ class S3(Storage):
             with closing(body):
                 output = body.read()
         except Exception as err:
-            self.logger.error("Error downloading Flow from S3: {}".format(err))
+            self.logger.error(f"Error downloading Flow from S3: {err}")
             raise
 
         self.logger.info(
@@ -121,15 +121,16 @@ class S3(Storage):
         """
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
 
+
         # Create key for Flow that uniquely identifies Flow object in S3
-        key = self.key or "{}/{}".format(
-            slugify(flow.name), slugify(pendulum.now("utc").isoformat())
+        key = (
+            self.key
+            or f'{slugify(flow.name)}/{slugify(pendulum.now("utc").isoformat())}'
         )
+
 
         # Append .py extension when storing as script
         # if self.stored_as_script and not key.endswith(".py"):
@@ -160,10 +161,9 @@ class S3(Storage):
             if self.local_script_path:
                 for flow_name, flow in self._flows.items():
                     self.logger.info(
-                        "Uploading script {} to {} in {}".format(
-                            self.local_script_path, self.flows[flow.name], self.bucket
-                        )
+                        f"Uploading script {self.local_script_path} to {self.flows[flow.name]} in {self.bucket}"
                     )
+
 
                     try:
                         self._boto3_client.upload_file(
@@ -174,18 +174,16 @@ class S3(Storage):
                         )
                     except ClientError as err:
                         self.logger.error(
-                            "Error uploading Flow script to S3 bucket {}: {}".format(
-                                self.bucket, err
-                            )
+                            f"Error uploading Flow script to S3 bucket {self.bucket}: {err}"
                         )
+
                         raise err
-            else:
-                if not self.key:
-                    raise ValueError(
-                        "A `key` must be provided to show where flow `.py` file is stored in S3 or "
-                        "provide a `local_script_path` pointing to a local script that contains the "
-                        "flow."
-                    )
+            elif not self.key:
+                raise ValueError(
+                    "A `key` must be provided to show where flow `.py` file is stored in S3 or "
+                    "provide a `local_script_path` pointing to a local script that contains the "
+                    "flow."
+                )
             return self
 
         for flow_name, flow in self._flows.items():
@@ -195,9 +193,7 @@ class S3(Storage):
             # Write pickled Flow to stream
             stream = io.BytesIO(data)
 
-            self.logger.info(
-                "Uploading {} to {}".format(self.flows[flow_name], self.bucket)
-            )
+            self.logger.info(f"Uploading {self.flows[flow_name]} to {self.bucket}")
 
             try:
                 self._boto3_client.upload_fileobj(
@@ -207,9 +203,7 @@ class S3(Storage):
                     ExtraArgs=self.upload_options,
                 )
             except ClientError as err:
-                self.logger.error(
-                    "Error uploading Flow to S3 bucket {}: {}".format(self.bucket, err)
-                )
+                self.logger.error(f"Error uploading Flow to S3 bucket {self.bucket}: {err}")
                 raise err
 
         return self

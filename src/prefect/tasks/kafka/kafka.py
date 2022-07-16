@@ -123,9 +123,11 @@ class KafkaBatchConsume(Task):
                         messages.append(message.value())
                         message_consume_count += 1
 
-                        if message_consume_limit:
-                            if message_consume_count >= message_consume_limit:
-                                break
+                        if (
+                            message_consume_limit
+                            and message_consume_count >= message_consume_limit
+                        ):
+                            break
                 else:
                     self.logger.info(
                         f"No messages found for topic {topics}; closing consumer..."
@@ -213,13 +215,12 @@ class KafkaBatchProduce(Task):
         message_produce_count = 0
 
         for i, message in enumerate(messages):
-            if flush_threshold:
-                if i % flush_threshold == 0:
-                    producer.flush()
-                    self.logger.info(
-                        f"Producer flushed {flush_threshold} messages to {topic}"
-                    )
-                    message_produce_count = 0
+            if flush_threshold and i % flush_threshold == 0:
+                producer.flush()
+                self.logger.info(
+                    f"Producer flushed {flush_threshold} messages to {topic}"
+                )
+                message_produce_count = 0
 
             key = message.get("key")
             value = message.get("value")

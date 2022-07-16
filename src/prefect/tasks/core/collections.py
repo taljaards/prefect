@@ -44,7 +44,7 @@ class VarArgsTask(Task):
         Returns:
             - Task: the current Task instance
         """
-        kwargs = {"arg_{}".format(i + 1): a for i, a in enumerate(args)}
+        kwargs = {f"arg_{i + 1}": a for i, a in enumerate(args)}
         return super().bind(
             upstream_tasks=upstream_tasks, mapped=mapped, flow=flow, **kwargs
         )
@@ -93,7 +93,7 @@ class Tuple(VarArgsTask):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def run(self, **task_results: Any) -> tuple:  # type: ignore
+    def run(self, **task_results: Any) -> tuple:    # type: ignore
         """
         Args:
             - **task_results (Any): task results to collect into a tuple
@@ -102,15 +102,13 @@ class Tuple(VarArgsTask):
             - tuple: a tuple of task results
         """
         return tuple(
-            [
-                v
-                for (k, v) in sorted(
-                    task_results.items(),
-                    # extract the integer index of the key to maintain sort order
-                    # arg_1, arg_2, etc.
-                    key=lambda item: int(item[0].split("_")[-1]),
-                )
-            ]
+            v
+            for (k, v) in sorted(
+                task_results.items(),
+                # extract the integer index of the key to maintain sort order
+                # arg_1, arg_2, etc.
+                key=lambda item: int(item[0].split("_")[-1]),
+            )
         )
 
 
@@ -149,7 +147,7 @@ class Dict(Task):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def run(self, keys: Iterable[Any], values: Iterable[Any]) -> dict:  # type: ignore
+    def run(self, keys: Iterable[Any], values: Iterable[Any]) -> dict:    # type: ignore
         """
         Args:
             - keys (Iterable[Any]): a list of keys that will form the dictionary
@@ -164,4 +162,4 @@ class Dict(Task):
         if len(keys) != len(values):
             raise ValueError("A different number of keys and values were provided!")
 
-        return {k: v for k, v in zip(keys, values)}
+        return dict(zip(keys, values))

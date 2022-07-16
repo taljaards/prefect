@@ -206,12 +206,12 @@ class Webhook(Storage):
         }
 
         if build_request_http_method not in self._method_to_function.keys():
-            msg = "HTTP method '{}' not recognized".format(build_request_http_method)
+            msg = f"HTTP method '{build_request_http_method}' not recognized"
             self.logger.critical(msg)
             raise RuntimeError(msg)
 
         if get_flow_request_http_method not in self._method_to_function.keys():
-            msg = "HTTP method '{}' not recognized".format(get_flow_request_http_method)
+            msg = f"HTTP method '{get_flow_request_http_method}' not recognized"
             self.logger.critical(msg)
             raise RuntimeError(msg)
 
@@ -339,7 +339,7 @@ class Webhook(Storage):
         self._build_responses = {}
 
         for flow_name, flow in self._flows.items():
-            self.logger.info("Uploading flow '{}'".format(flow_name))
+            self.logger.info(f"Uploading flow '{flow_name}'")
 
             data = flow_to_bytes_pickle(flow)
             if self.stored_as_script:
@@ -352,9 +352,8 @@ class Webhook(Storage):
                     raise RuntimeError(msg)
 
                 if not os.path.isfile(self.flow_script_path):
-                    msg = "file '{}' passed to flow_script_path does not exist".format(
-                        self.flow_script_path
-                    )
+                    msg = f"file '{self.flow_script_path}' passed to flow_script_path does not exist"
+
                     self.logger.critical(msg)
                     raise RuntimeError(msg)
 
@@ -379,6 +378,6 @@ class Webhook(Storage):
             response.raise_for_status()
 
             self._build_responses[flow_name] = response
-            self.logger.info("Successfully uploaded flow '{}'".format(flow_name))
+            self.logger.info(f"Successfully uploaded flow '{flow_name}'")
 
         return self

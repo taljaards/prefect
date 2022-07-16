@@ -164,21 +164,18 @@ class Runner:
             for handler in self.state_handlers:
                 new_state = handler(self, old_state, new_state) or new_state
 
-        # raise pauses and ENDRUNs
         except (signals.PAUSE, ENDRUN):
             raise
 
-        # trap signals
         except signals.PrefectStateSignal as exc:
             if raise_on_exception:
                 raise
             return exc.state
 
-        # abort on errors
         except Exception as exc:
             if raise_on_exception:
                 raise
-            msg = "Unexpected error while calling state handlers: {}".format(repr(exc))
+            msg = f"Unexpected error while calling state handlers: {repr(exc)}"
             self.logger.exception(msg)
             raise ENDRUN(Failed(msg, result=exc)) from exc
         return new_state

@@ -80,13 +80,11 @@ class Azure(Storage):
                 container=self.container, blob=flow_location
             )
 
-            self.logger.info(
-                "Downloading {} from {}".format(flow_location, self.container)
-            )
+            self.logger.info(f"Downloading {flow_location} from {self.container}")
 
             content = client.download_blob().content_as_bytes()
         except Exception as err:
-            self.logger.error("Error downloading Flow from Azure: {}".format(err))
+            self.logger.error(f"Error downloading Flow from Azure: {err}")
             raise
         if self.stored_as_script:
             return extract_flow_from_file(file_contents=content, flow_name=flow_name)  # type: ignore
@@ -109,15 +107,16 @@ class Azure(Storage):
 
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
 
+
         # create key for Flow that uniquely identifies Flow object in Azure
-        blob_name = self.blob_name or "{}/{}".format(
-            slugify(flow.name), slugify(pendulum.now("utc").isoformat())
+        blob_name = (
+            self.blob_name
+            or f'{slugify(flow.name)}/{slugify(pendulum.now("utc").isoformat())}'
         )
+
 
         self.flows[flow.name] = blob_name
         self._flows[flow.name] = flow
@@ -148,9 +147,7 @@ class Azure(Storage):
                 container=self.container, blob=self.flows[flow_name]
             )
 
-            self.logger.info(
-                "Uploading {} to {}".format(self.flows[flow_name], self.container)
-            )
+            self.logger.info(f"Uploading {self.flows[flow_name]} to {self.container}")
 
             client.upload_blob(data, overwrite=self.overwrite)
 

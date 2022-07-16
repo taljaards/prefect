@@ -6,6 +6,7 @@ are pinned to their lowest allowed versions.  We use this
 new requirements file to test that we still support all of our
 specified versions.
 """
+
 import re
 
 with open("requirements.txt", "r") as f:
@@ -15,4 +16,4 @@ with open("requirements.txt", "r") as f:
 with open("lower_requirements.txt", "w") as g:
     for req in reqs:
         pkg_data = re.split(">=|,", req.replace("~", ">"))
-        g.write(pkg_data[0].strip() + " == " + pkg_data[1].strip() + "\n")
+        g.write(f"{pkg_data[0].strip()} == {pkg_data[1].strip()}" + "\n")

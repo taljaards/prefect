@@ -292,10 +292,9 @@ class Agent:
                 remaining_polls -= 1
 
                 self.logger.debug(
-                    "Sleeping flow run poller for {} seconds...".format(
-                        self._loop_intervals[backoff_index]
-                    )
+                    f"Sleeping flow run poller for {self._loop_intervals[backoff_index]} seconds..."
                 )
+
 
                 # Wait for loop interval timeout or agent to be poked by
                 # external process before querying for flow runs again.
@@ -370,8 +369,9 @@ class Agent:
             # - Running - in this case the flow run state will not have a start time so we default to now
             flow_run_state = StateSchema().load(flow_run.serialized_state)
             start_time = getattr(flow_run_state, "start_time", pendulum.now())
-            delay_seconds = max(0, (start_time - pendulum.now()).total_seconds())
-            if delay_seconds:
+            if delay_seconds := max(
+                0, (start_time - pendulum.now()).total_seconds()
+            ):
                 self.logger.debug(
                     f"Waiting {delay_seconds}s to deploy flow run {flow_run.id} on "
                     "time..."
@@ -391,9 +391,10 @@ class Agent:
 
             self._safe_write_run_log(
                 flow_run,
-                message="Submitted for execution: {}".format(deployment_info),
+                message=f"Submitted for execution: {deployment_info}",
                 level="INFO",
             )
+
 
         except Exception as exc:
             # On exception, we'll mark this flow as failed
@@ -401,7 +402,7 @@ class Agent:
             # if first failure was a state update error, we don't want to try another
             # state update
             if "State update failed" in str(exc):
-                self.logger.debug("Updating Flow Run state failed: {}".format(str(exc)))
+                self.logger.debug(f"Updating Flow Run state failed: {str(exc)}")
                 return
 
             # This is to match existing past behavior, I cannot imagine we would reach
@@ -594,9 +595,8 @@ class Agent:
         target_flow_run_ids = flow_run_ids - already_submitting
 
         if already_submitting:
-            msg += " ({} already being submitted: {})".format(
-                len(already_submitting), list(already_submitting)
-            )
+            msg += f" ({len(already_submitting)} already being submitted: {list(already_submitting)})"
+
 
         self.logger.debug(msg)
         return target_flow_run_ids
@@ -774,10 +774,8 @@ class Agent:
                 # Convert to agent-specific run-config
                 return run_config_cls(env=run_config.env, labels=run_config.labels)
             elif not isinstance(run_config, run_config_cls):
-                msg = (
-                    "Flow run %s has a `run_config` of type `%s`, only `%s` is supported"
-                    % (flow_run.id, type(run_config).__name__, run_config_cls.__name__)
-                )
+                msg = f"Flow run {flow_run.id} has a `run_config` of type `{type(run_config).__name__}`, only `{run_config_cls.__name__}` is supported"
+
                 self.logger.error(msg)
                 raise TypeError(msg)
             return run_config

@@ -55,11 +55,12 @@ AIRCRAFT_VECTOR_FIELDS = (
 
 def _api_request_json(req: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
     response = requests.get(
-        "https://opensky-network.org/api/{}".format(req),
+        f"https://opensky-network.org/api/{req}",
         auth=(),
         params=options or {},
         timeout=300.00,
     )
+
     response.raise_for_status()
     return response.json()
 
@@ -76,7 +77,7 @@ def _capture_path(area: Area = None) -> str:
         pathlib.Path(__file__).parent.absolute()
         / "data"
         / "opensky"
-        / "capture{}.json".format(postfix)
+        / f"capture{postfix}.json"
     )
 
 
@@ -96,17 +97,16 @@ def fetch_live_aircraft_data(
 
     options = {}
     if area != None:
-        if isinstance(area, Area):
-            area.validate()
-            area_fields = area.bounding_box
-
-            options["lamin"] = area_fields[0]
-            options["lamax"] = area_fields[1]
-            options["lomin"] = area_fields[2]
-            options["lomax"] = area_fields[3]
-        else:
+        if not isinstance(area, Area):
             raise ValueError("Bad area given")
 
+        area.validate()
+        area_fields = area.bounding_box
+
+        options["lamin"] = area_fields[0]
+        options["lamax"] = area_fields[1]
+        options["lomin"] = area_fields[2]
+        options["lomax"] = area_fields[3]
     capture_path = _capture_path(area)
 
     if offline and os.path.exists(capture_path):

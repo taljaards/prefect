@@ -32,16 +32,15 @@ def get_default_storage_class() -> type:
     Defaults to `Local` if the string config value can not be loaded
     """
     config_value = config.flows.defaults.storage.default_class
-    if isinstance(config_value, str):
-        try:
-            return prefect.utilities.serialization.from_qualified_name(config_value)
-        except ValueError:
-            warn(
-                f"Could not import {config_value}; using prefect.storage.Local instead."
-            )
-            return Local
-    else:
+    if not isinstance(config_value, str):
         return config_value
+    try:
+        return prefect.utilities.serialization.from_qualified_name(config_value)
+    except ValueError:
+        warn(
+            f"Could not import {config_value}; using prefect.storage.Local instead."
+        )
+        return Local
 
 
 __all__ = [

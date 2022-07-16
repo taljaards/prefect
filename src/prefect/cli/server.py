@@ -264,11 +264,7 @@ def setup_compose_env(
 
     # Pull current version information
     base_version = prefect.__version__.split("+")
-    if len(base_version) > 1:
-        default_tag = "master"
-    else:
-        default_tag = f"core-{base_version[0]}"
-
+    default_tag = "master" if len(base_version) > 1 else f"core-{base_version[0]}"
     db_connection_url = (
         config.server.database.connection_url if postgres_url is None else postgres_url
     )
@@ -300,16 +296,17 @@ def setup_compose_env(
     )
 
     POSTGRES_ENV = (
-        dict(
+        dict()
+        if external_postgres
+        else dict(
             POSTGRES_HOST_PORT=str(postgres_port),
             POSTGRES_USER=config.server.database.username,
             POSTGRES_PASSWORD=config.server.database.password,
             POSTGRES_DB=config.server.database.name,
             POSTGRES_DATA_PATH=volume_path,
         )
-        if not external_postgres
-        else dict()
     )
+
 
     UI_ENV = dict(
         APOLLO_URL=config.server.ui.apollo_url, PREFECT_UI_TAG=ui_version or default_tag
@@ -349,10 +346,11 @@ def setup_compose_env(
     # Allow a more complex database command to be passed via env
     env.setdefault(
         "PREFECT_SERVER_DB_CMD",
-        "prefect-server database upgrade -y"
-        if not no_upgrade
-        else "echo 'DATABASE MIGRATIONS SKIPPED'",
+        "echo 'DATABASE MIGRATIONS SKIPPED'"
+        if no_upgrade
+        else "prefect-server database upgrade -y",
     )
+
 
     env.update(**PREFECT_ENV, **APOLLO_ENV, **POSTGRES_ENV, **UI_ENV, **HASURA_ENV)
 
@@ -638,12 +636,12 @@ def start(
         proc = subprocess.Popen(cmd, cwd=compose_dir_path, env=env)
         started = False
         with prefect.utilities.configuration.set_temporary_config(
-            {
-                "cloud.api": "http://localhost:4200",
-                "cloud.graphql": "http://localhost:4200/graphql",
-                "backend": "server",
-            }
-        ):
+                    {
+                        "cloud.api": "http://localhost:4200",
+                        "cloud.graphql": "http://localhost:4200/graphql",
+                        "backend": "server",
+                    }
+                ):
             while not started:
                 try:
                     # Get a client with the correct server port
@@ -659,7 +657,6 @@ def start(
                         print(ascii_welcome(ui_port=str(ui_port)))
                 except Exception:
                     time.sleep(0.5)
-                    pass
             if detach:
                 return
             while True:
@@ -694,13 +691,11 @@ def ascii_welcome(ui_port="8080"):
 
     """
 
-    message = f"""
+    return f"""
                                             {click.style('WELCOME TO', fg='blue', bold=True)}
   {click.style(title, bold=True)}
    Visit {ui_url} to get started, or check out the docs at {docs_url}
     """
-
-    return message
 
 
 @server.command(hidden=True)

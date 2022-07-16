@@ -25,13 +25,11 @@ def get_google_client(submodule, credentials: dict = None, project: str = None):
     credentials = credentials or prefect.context.get("secrets", {}).get(
         "GCP_CREDENTIALS"
     )
-    if credentials is not None:
-        credentials = Credentials.from_service_account_info(credentials)
-        project = project or credentials.project_id
-        client = Client(project=project, credentials=credentials)
-    else:
-        client = Client(project=project)
-    return client
+    if credentials is None:
+        return Client(project=project)
+    credentials = Credentials.from_service_account_info(credentials)
+    project = project or credentials.project_id
+    return Client(project=project, credentials=credentials)
 
 
 def get_storage_client(credentials: dict = None, project: str = None):

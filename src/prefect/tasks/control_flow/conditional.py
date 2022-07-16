@@ -30,7 +30,7 @@ class CompareValue(Task):
 
     def __init__(self, value: Any, **kwargs: Any):
         self.value = value
-        kwargs.setdefault("name", 'CompareValue: "{}"'.format(value))
+        kwargs.setdefault("name", f'CompareValue: "{value}"')
         super().__init__(**kwargs)
 
     def run(self, value: Any) -> None:
@@ -42,9 +42,7 @@ class CompareValue(Task):
             - value (Any): the value that will be matched against the task's value.
         """
         if value != self.value:
-            raise signals.SKIP(
-                'Provided value "{}" did not match "{}"'.format(value, self.value)
-            )
+            raise signals.SKIP(f'Provided value "{value}" did not match "{self.value}"')
 
 
 def switch(condition: Task, cases: Dict[Any, Task], mapped: bool = False) -> None:
@@ -164,7 +162,7 @@ def merge(*tasks: Task, flow=None, mapped: bool = False, **kwargs) -> Task:
 
     """
     return Merge(**kwargs).bind(
-        **{"task_{}".format(i + 1): t for i, t in enumerate(tasks)},
+        **{f"task_{i + 1}": t for i, t in enumerate(tasks)},
         flow=flow,
-        mapped=mapped
+        mapped=mapped,
     )

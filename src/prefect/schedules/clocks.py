@@ -36,25 +36,23 @@ class ClockEvent:
     def __gt__(self, other: Union[datetime, "ClockEvent"]) -> bool:
         if not isinstance(other, (ClockEvent, datetime)):
             raise TypeError(
-                "'>' not supported between instances of 'ClockEvent' and {}".format(
-                    type(other).__name__
-                )
+                f"'>' not supported between instances of 'ClockEvent' and {type(other).__name__}"
             )
+
         else:
             return self.start_time > other
 
     def __lt__(self, other: Union[datetime, "ClockEvent"]) -> bool:
         if not isinstance(other, (ClockEvent, datetime)):
             raise TypeError(
-                "'<' not supported between instances of 'ClockEvent' and {}".format(
-                    type(other).__name__
-                )
+                f"'<' not supported between instances of 'ClockEvent' and {type(other).__name__}"
             )
+
         else:
             return self.start_time < other
 
     def __repr__(self) -> str:
-        return "<%s,%s,%s>" % (self.start_time, self.labels, self.parameter_defaults)
+        return f"<{self.start_time},{self.labels},{self.parameter_defaults}>"
 
 
 class Clock:
@@ -261,7 +259,7 @@ class CronClock(Clock):
     ):
         # build cron object to check the cron string - will raise an error if it's invalid
         if not croniter.is_valid(cron):
-            raise ValueError("Invalid cron string: {}".format(cron))
+            raise ValueError(f"Invalid cron string: {cron}")
         self.cron = cron
         self.day_or = True if day_or is None else day_or
         super().__init__(

@@ -78,7 +78,7 @@ class Git(Storage):
         format_access_token: bool = True,
         **kwargs: Any,
     ) -> None:
-        if sum([bool(x) for x in (branch_name, tag, commit)]) > 1:
+        if sum(bool(x) for x in (branch_name, tag, commit)) > 1:
             raise ValueError(
                 "Please provide only one of the following parameters: `branch_name`, `tag`, `commit`"
             )
@@ -120,11 +120,10 @@ class Git(Storage):
 
         # if not provided, assume the username associated with the token
         # is the organization that owns the repo
-        self.git_token_username = (
-            git_token_username
-            if git_token_username
-            else (repo.split("/")[0] if repo else None)
+        self.git_token_username = git_token_username or (
+            repo.split("/")[0] if repo else None
         )
+
 
         self.branch_name = branch_name
         self.tag = tag
@@ -170,10 +169,9 @@ class Git(Storage):
         """
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
+
         self.flows[flow.name] = self.flow_path
         self._flows[flow.name] = flow
         return self.flow_path

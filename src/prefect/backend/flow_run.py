@@ -162,16 +162,8 @@ def watch_flow_run(
                 # not seen yet`
                 last_log_timestamp = logs[-1].timestamp
 
-        for flow_run_log in sorted(messages):
-            yield flow_run_log
-
-        if not messages:
-            # Delay the poll if there are no messages
-            poll_interval = int(poll_interval * poll_factor)
-        else:
-            # Otherwise reset to the min poll time for a fast query
-            poll_interval = poll_min
-
+        yield from sorted(messages)
+        poll_interval = poll_min if messages else int(poll_interval * poll_factor)
         poll_interval = min(poll_interval, poll_max)
         time.sleep(poll_interval)
         agent_warning_time_elapsed += poll_interval
@@ -599,7 +591,7 @@ class FlowRunView:
             task_runs = []
 
         # Combine with the provided `_cached_task_runs` iterable
-        task_runs = task_runs + list(_cached_task_runs or [])
+        task_runs += list(_cached_task_runs or [])
 
         return cls._from_flow_run_data(flow_run_data, task_runs=task_runs)
 
@@ -706,9 +698,9 @@ class FlowRunView:
             if map_index is None:
                 map_index = -1
 
-            # Check the cache
-            task_run_id = self._slug_index_to_cached_id.get((task_slug, map_index))
-            if task_run_id:
+            if task_run_id := self._slug_index_to_cached_id.get(
+                (task_slug, map_index)
+            ):
                 return self._cached_task_runs[task_run_id]
 
             result = TaskRunView.from_task_slug(

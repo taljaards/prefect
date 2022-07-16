@@ -67,7 +67,7 @@ class S3Result(Result):
 
         new = self.format(**kwargs)
         new.value = value_
-        self.logger.debug("Starting to upload result to {}...".format(new.location))
+        self.logger.debug(f"Starting to upload result to {new.location}...")
         binary_data = new.serializer.serialize(new.value)
 
         stream = io.BytesIO(binary_data)
@@ -78,10 +78,10 @@ class S3Result(Result):
         try:
             self.client.upload_fileobj(stream, Bucket=self.bucket, Key=new.location)
         except ClientError as err:
-            self.logger.error("Error uploading to S3: {}".format(err))
+            self.logger.error(f"Error uploading to S3: {err}")
             raise err
 
-        self.logger.debug("Finished uploading result to {}.".format(new.location))
+        self.logger.debug(f"Finished uploading result to {new.location}.")
         return new
 
     def read(self, location: str) -> Result:
@@ -99,7 +99,7 @@ class S3Result(Result):
         new.location = location
 
         try:
-            self.logger.debug("Starting to download result from {}...".format(location))
+            self.logger.debug(f"Starting to download result from {location}...")
             stream = io.BytesIO()
 
             # download - uses `self` in case the client is already instantiated
@@ -111,14 +111,13 @@ class S3Result(Result):
                 new.value = new.serializer.deserialize(stream.getvalue())
             except EOFError:
                 new.value = None
-            self.logger.debug("Finished downloading result from {}.".format(location))
+            self.logger.debug(f"Finished downloading result from {location}.")
 
         except Exception as exc:
             self.logger.exception(
-                "Unexpected error while reading from result handler: {}".format(
-                    repr(exc)
-                )
+                f"Unexpected error while reading from result handler: {repr(exc)}"
             )
+
             raise exc
 
         return new
@@ -145,8 +144,6 @@ class S3Result(Result):
                 return False
             raise
         except Exception as exc:
-            self.logger.exception(
-                "Unexpected error while reading from S3: {}".format(repr(exc))
-            )
+            self.logger.exception(f"Unexpected error while reading from S3: {repr(exc)}")
             raise
         return True

@@ -292,30 +292,28 @@ def _wait_for_flow_run_start_time(flow_run_id: str) -> None:
     See those two docstrings for details on why this is necessary.
     """
     logger.debug("Checking for flow run scheduled start time...")
-    flow_run_start = _get_flow_run_scheduled_start_time(flow_run_id)
-    if flow_run_start:
+    if flow_run_start := _get_flow_run_scheduled_start_time(flow_run_id):
         interval = flow_run_start.diff(abs=False).in_seconds() * -1
         message = f"Flow run scheduled to run {flow_run_start.diff_for_humans()}; "
         if interval > 0:
-            logger.info(message + "sleeping before trying to run flow...")
+            logger.info(f"{message}sleeping before trying to run flow...")
             time.sleep(interval)
         else:  # is scheduled in the past
-            logger.debug(message + "moving to next check...")
+            logger.debug(f"{message}moving to next check...")
     else:
         logger.debug("No scheduled time found; moving to next check...")
 
     logger.debug("Checking for retried task runs...")
-    next_task_start = _get_next_task_run_start_time(flow_run_id)
-    if next_task_start:
+    if next_task_start := _get_next_task_run_start_time(flow_run_id):
         interval = next_task_start.diff(abs=False).in_seconds() * -1
         message = f"Found task run scheduled {next_task_start.diff_for_humans()}; "
         if interval > 0:
-            logger.info(message + "sleeping before trying to run flow...")
+            logger.info(f"{message}sleeping before trying to run flow...")
             # TODO: In the future we may want to set an upper limit if the backend
             #       may update the state of the flow for an earlier retry
             time.sleep(interval)
         else:  # is scheduled in the past
-            logger.info(message + "trying to run flow now...")
+            logger.info(f"{message}trying to run flow now...")
     else:
         logger.debug("No scheduled task runs found; trying to run flow now...")
 
@@ -442,10 +440,11 @@ def _get_flow_run_scheduled_start_time(flow_run_id: str) -> Optional[pendulum.Da
         else flow_run.scheduled_start_time
     )
 
-    if not start_time:
-        return None  # There is no scheduled start time in the states or on the run
-
-    return cast(pendulum.DateTime, pendulum.parse(start_time))
+    return (
+        cast(pendulum.DateTime, pendulum.parse(start_time))
+        if start_time
+        else None
+    )
 
 
 @contextmanager

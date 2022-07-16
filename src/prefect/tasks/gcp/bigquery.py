@@ -639,7 +639,7 @@ class CreateBigQueryTable(Task):
         try:
             dataset_ref = client.get_dataset(dataset)
         except NotFound:
-            self.logger.debug("Dataset {} not found, creating...".format(dataset))
+            self.logger.debug(f"Dataset {dataset} not found, creating...")
             dataset_ref = client.create_dataset(dataset)
 
         table_ref = dataset_ref.table(table)
@@ -649,7 +649,7 @@ class CreateBigQueryTable(Task):
                 "{dataset}.{table} already exists.".format(dataset=dataset, table=table)
             )
         except NotFound:
-            self.logger.debug("Table {} not found, creating...".format(table))
+            self.logger.debug(f"Table {table} not found, creating...")
             table = bigquery.Table(table_ref, schema=schema)
 
             # partitioning

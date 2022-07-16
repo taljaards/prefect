@@ -120,10 +120,7 @@ class State:
 
     @result.setter
     def result(self, value: Any) -> None:
-        if isinstance(value, Result):
-            self._result = value
-        else:
-            self._result = Result(value=value)
+        self._result = value if isinstance(value, Result) else Result(value=value)
 
     def load_result(self, result: Result = None) -> "State":
         """
@@ -218,9 +215,7 @@ class State:
             children.extend(state.children())
         if include_self:
             children += [cls]
-        if names_only:
-            return [s.__name__ for s in children]  # type: ignore
-        return children
+        return [s.__name__ for s in children] if names_only else children
 
     @classmethod
     def parents(
@@ -248,9 +243,7 @@ class State:
                 parents.append(state)
         if include_self:
             parents += [cls]
-        if names_only:
-            return [s.__name__ for s in parents]  # type: ignore
-        return parents
+        return [s.__name__ for s in parents] if names_only else parents
 
     def is_pending(self) -> bool:
         """
@@ -391,8 +384,7 @@ class State:
         """
         from prefect.serialization.state import StateSchema
 
-        state = StateSchema().load(json_blob)
-        return state
+        return StateSchema().load(json_blob)
 
     def serialize(self) -> dict:
         """
@@ -403,8 +395,7 @@ class State:
         """
         from prefect.serialization.state import StateSchema
 
-        json_blob = StateSchema().dump(self)
-        return json_blob
+        return StateSchema().dump(self)
 
 
 # -------------------------------------------------------------------

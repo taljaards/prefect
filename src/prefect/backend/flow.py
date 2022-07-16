@@ -237,11 +237,7 @@ class FlowView:
                 f"where {where}: {flows}"
             )
 
-        if not flows:
-            return {}
-
-        flow = flows[0]
-        return flow
+        return flows[0] if flows else {}
 
     @staticmethod
     def _query_for_flows(

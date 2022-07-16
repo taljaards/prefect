@@ -211,8 +211,8 @@ class ResourceManager:
     def __call__(self, *args: Any, flow: Flow = None, **kwargs: Any) -> ResourceContext:
         if flow is None:
             flow = prefect.context.get("flow")
-            if flow is None:
-                raise ValueError("Could not infer an active Flow context.")
+        if flow is None:
+            raise ValueError("Could not infer an active Flow context.")
 
         init_task = ResourceInitTask(self.resource_class, **self.init_task_kwargs)(  # type: ignore
             *args, flow=flow, **kwargs

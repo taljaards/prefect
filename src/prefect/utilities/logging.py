@@ -316,10 +316,7 @@ def get_logger(name: str = None) -> logging.Logger:
         - logging.Logger: a configured logging object with the appropriate name
     """
 
-    if name is None:
-        return prefect_logger
-    else:
-        return prefect_logger.getChild(name)
+    return prefect_logger if name is None else prefect_logger.getChild(name)
 
 
 @contextmanager
@@ -349,10 +346,11 @@ def temporary_logger_config(
     previous_log_level = logger.level
 
     overrides = {
-        "logging.level": level if level else None,
+        "logging.level": level or None,
         "logging.format": stream_fmt,
         "logging.datefmt": stream_datefmt,
     }
+
     # Drop empty values to retain existing settings
     overrides = {key: value for key, value in overrides.items() if value}
 

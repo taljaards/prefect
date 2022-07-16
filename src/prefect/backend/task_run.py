@@ -308,12 +308,7 @@ class TaskRunView:
                 f"runs where {where}: {task_runs}"
             )
 
-        if not task_runs:
-            # Erroring on an empty result is handled by `_query_for_task_runs`
-            return {}
-
-        task_run = task_runs[0]
-        return task_run
+        return task_runs[0] if task_runs else {}
 
     @staticmethod
     def _query_for_task_runs(
@@ -388,7 +383,8 @@ class TaskRunView:
         )
 
     def __eq__(self, other: Any) -> Any:
-        if not isinstance(other, TaskRunView):
-            return NotImplemented
-
-        return other.task_run_id == self.task_run_id and other.state == self.state
+        return (
+            other.task_run_id == self.task_run_id and other.state == self.state
+            if isinstance(other, TaskRunView)
+            else NotImplemented
+        )

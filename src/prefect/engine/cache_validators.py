@@ -59,12 +59,11 @@ def duration_only(
     Returns:
         - boolean specifying whether or not the cache should be used
     """
-    if state.cached_result_expiration is None:
-        return True
-    elif state.cached_result_expiration > pendulum.now("utc"):
-        return True
-    else:
-        return False
+    return (
+        state.cached_result_expiration is None
+        or state.cached_result_expiration is not None
+        and state.cached_result_expiration > pendulum.now("utc")
+    )
 
 
 def all_inputs(
@@ -91,10 +90,10 @@ def all_inputs(
     if duration_only(state, inputs, parameters) is False:
         return False
     elif getattr(state, "hashed_inputs", None) is not None:
-        if state.hashed_inputs == {key: tokenize(val) for key, val in inputs.items()}:
-            return True
-        else:
-            return False
+        return state.hashed_inputs == {
+            key: tokenize(val) for key, val in inputs.items()
+        }
+
     elif {key: res.value for key, res in state.cached_inputs.items()} == inputs:
         return True
     else:
@@ -252,10 +251,10 @@ def partial_inputs_only(validate_on: Iterable[str] = None) -> Callable:
     """
 
     def _partial_inputs_only(
-        state: "prefect.engine.state.Cached",
-        inputs: Dict[str, Any],
-        parameters: Dict[str, Any],
-    ) -> bool:
+            state: "prefect.engine.state.Cached",
+            inputs: Dict[str, Any],
+            parameters: Dict[str, Any],
+        ) -> bool:
         """
         The actual cache validation function that will be used.
 
@@ -289,10 +288,7 @@ def partial_inputs_only(validate_on: Iterable[str] = None) -> Callable:
                 for key, value in state.hashed_inputs.items()
                 if key in validate_on
             }
-            if partial_provided == partial_needed:
-                return True
-            else:
-                return False
+            return partial_provided == partial_needed
         else:
             cached = {key: res.value for key, res in state.cached_inputs.items()}
             partial_provided = {

@@ -34,7 +34,7 @@ def to_qualified_name(obj: Any) -> str:
     Returns:
         - str: the qualified name
     """
-    return obj.__module__ + "." + obj.__qualname__
+    return f"{obj.__module__}.{obj.__qualname__}"
 
 
 def from_qualified_name(obj_str: str) -> Any:
@@ -65,7 +65,7 @@ def from_qualified_name(obj_str: str) -> Any:
     except Exception:
         pass  # exceptions are raised by the catch-all at the end
     raise ValueError(
-        "Couldn't load \"{}\"; maybe it hasn't been imported yet?".format(obj_str)
+        f"""Couldn't load \"{obj_str}\"; maybe it hasn't been imported yet?"""
     )
 
 
@@ -345,14 +345,14 @@ class FunctionReference(fields.Field):
         if value is None and self.allow_none:
             return None
         elif value not in self.valid_functions.values() and self.reject_invalid:
-            raise ValidationError("Invalid function reference: {}".format(value))
+            raise ValidationError(f"Invalid function reference: {value}")
         return to_qualified_name(value)
 
     def _deserialize(self, value, attr, data, **kwargs):  # type: ignore
         if value is None and self.allow_none:
             return None
         elif value not in self.valid_functions and self.reject_invalid:
-            raise ValidationError("Invalid function reference: {}".format(value))
+            raise ValidationError(f"Invalid function reference: {value}")
         return self.valid_functions.get(value, value)
 
 
@@ -428,17 +428,15 @@ class StatefulFunctionReference(fields.Field):
         for k, v in list(nonlocals.items()):
             # convert dates to strings
             if isinstance(v, datetime.datetime):
-                nonlocals[k] = "//datetime:" + v.isoformat()
-            # convert time to strings
+                nonlocals[k] = f"//datetime:{v.isoformat()}"
             elif isinstance(v, datetime.time):
-                nonlocals[k] = "//time:" + v.isoformat()
-            # convert timedelta to seconds
+                nonlocals[k] = f"//time:{v.isoformat()}"
             elif isinstance(v, datetime.timedelta):
-                nonlocals[k] = "//timedelta:" + str(v.total_seconds())
+                nonlocals[k] = f"//timedelta:{str(v.total_seconds())}"
 
         return {"fn": base_name, "kwargs": nonlocals}
 
-    def _deserialize(self, value, attr, data, **kwargs):  # type: ignore
+    def _deserialize(self, value, attr, data, **kwargs):    # type: ignore
         """
         Attempts to return the original function that was serialized, with _no state_.
 
@@ -450,7 +448,7 @@ class StatefulFunctionReference(fields.Field):
         # retrieve the function
         base_name = value["fn"]
         if base_name not in self.valid_functions and self.reject_invalid:
-            raise ValidationError("Invalid function reference: {}".format(value))
+            raise ValidationError(f"Invalid function reference: {value}")
         fn = self.valid_functions.get(base_name)
 
         if not fn:

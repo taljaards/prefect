@@ -19,17 +19,16 @@ def get_default_executor_class() -> type:
     """
     config_value = config.engine.executor.default_class
 
-    if isinstance(config_value, str):
-        try:
-            return prefect.utilities.serialization.from_qualified_name(config_value)
-        except ValueError:
-            warn(
-                "Could not import {}; using "
-                "prefect.executors.LocalExecutor instead.".format(config_value)
-            )
-            return prefect.executors.LocalExecutor
-    else:
+    if not isinstance(config_value, str):
         return config_value
+    try:
+        return prefect.utilities.serialization.from_qualified_name(config_value)
+    except ValueError:
+        warn(
+            f"Could not import {config_value}; using prefect.executors.LocalExecutor instead."
+        )
+
+        return prefect.executors.LocalExecutor
 
 
 def get_default_flow_runner_class() -> type:
@@ -42,17 +41,16 @@ def get_default_flow_runner_class() -> type:
     """
     config_value = config.engine.flow_runner.default_class
 
-    if isinstance(config_value, str):
-        try:
-            return prefect.utilities.serialization.from_qualified_name(config_value)
-        except ValueError:
-            warn(
-                "Could not import {}; using "
-                "prefect.engine.flow_runner.FlowRunner instead.".format(config_value)
-            )
-            return prefect.engine.flow_runner.FlowRunner
-    else:
+    if not isinstance(config_value, str):
         return config_value
+    try:
+        return prefect.utilities.serialization.from_qualified_name(config_value)
+    except ValueError:
+        warn(
+            f"Could not import {config_value}; using prefect.engine.flow_runner.FlowRunner instead."
+        )
+
+        return prefect.engine.flow_runner.FlowRunner
 
 
 def get_default_task_runner_class() -> type:
@@ -65,17 +63,16 @@ def get_default_task_runner_class() -> type:
     """
     config_value = config.engine.task_runner.default_class
 
-    if isinstance(config_value, str):
-        try:
-            return prefect.utilities.serialization.from_qualified_name(config_value)
-        except ValueError:
-            warn(
-                "Could not import {}; using "
-                "prefect.engine.task_runner.TaskRunner instead.".format(config_value)
-            )
-            return prefect.engine.task_runner.TaskRunner
-    else:
+    if not isinstance(config_value, str):
         return config_value
+    try:
+        return prefect.utilities.serialization.from_qualified_name(config_value)
+    except ValueError:
+        warn(
+            f"Could not import {config_value}; using prefect.engine.task_runner.TaskRunner instead."
+        )
+
+        return prefect.engine.task_runner.TaskRunner
 
 
 __all__ = ["FlowRunner", "TaskRunner"]

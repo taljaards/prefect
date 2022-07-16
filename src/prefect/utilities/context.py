@@ -90,7 +90,7 @@ class Context(DotDict, threading.local):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         init = {}
         # Initialize with config context
-        init.update(config.get("context", {}))
+        init |= config.get("context", {})
         # Overwrite with explicit args
         init.update(dict(*args, **kwargs))
         # Merge in config (with explicit args overwriting)

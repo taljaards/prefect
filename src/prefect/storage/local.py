@@ -69,10 +69,7 @@ class Local(Storage):
 
     @property
     def default_labels(self) -> List[str]:
-        if self.add_default_labels:
-            return [socket.gethostname()]
-        else:
-            return []
+        return [socket.gethostname()] if self.add_default_labels else []
 
     def get_flow(self, flow_name: str) -> "Flow":
         """
@@ -88,20 +85,16 @@ class Local(Storage):
             raise ValueError("Flow is not contained in this Storage")
         flow_location = self.flows[flow_name]
 
-        # check if the path given is a file path
-        if os.path.isfile(flow_location):
-            if self.stored_as_script:
-                return extract_flow_from_file(
-                    file_path=flow_location, flow_name=flow_name
-                )
-            else:
-                with open(flow_location, "rb") as f:
-                    return flow_from_bytes_pickle(f.read())
-        # otherwise the path is given in the module format
-        else:
+        if not os.path.isfile(flow_location):
             return extract_flow_from_module(
                 module_str=flow_location, flow_name=flow_name
             )
+        if self.stored_as_script:
+            return extract_flow_from_file(
+                file_path=flow_location, flow_name=flow_name
+            )
+        with open(flow_location, "rb") as f:
+            return flow_from_bytes_pickle(f.read())
 
     def add_flow(self, flow: "Flow") -> str:
         """
@@ -118,10 +111,9 @@ class Local(Storage):
         """
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
+
 
         if self.stored_as_script:
             if not self.path:
@@ -130,14 +122,12 @@ class Local(Storage):
                 )
             flow_location = self.path
         else:
-            if self.path:
-                flow_location = self.path
-            else:
-                flow_location = os.path.join(
-                    self.directory,
-                    slugify(flow.name),
-                    slugify(pendulum.now("utc").isoformat()),
-                )
+            flow_location = self.path or os.path.join(
+                self.directory,
+                slugify(flow.name),
+                slugify(pendulum.now("utc").isoformat()),
+            )
+
             os.makedirs(os.path.dirname(flow_location), exist_ok=True)
             with open(flow_location, "wb") as f:
                 f.write(flow_to_bytes_pickle(flow))

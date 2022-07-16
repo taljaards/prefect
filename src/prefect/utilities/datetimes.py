@@ -43,10 +43,7 @@ def retry_delay(
         interval = datetime.timedelta(**kwargs)
 
     def retry_delay(run_number: int) -> datetime.timedelta:
-        if exponential_backoff:
-            scale = 2 ** (max(0, run_number - 2))
-        else:
-            scale = 1
+        scale = 2 ** (max(0, run_number - 2)) if exponential_backoff else 1
         if max_delay is not None:
             return min(interval * scale, max_delay)
         else:

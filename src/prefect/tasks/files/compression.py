@@ -153,10 +153,11 @@ class Zip(Task):
 
         zip_path = Path(zip_path)
 
-        if not isinstance(source_path, list):
-            source_path = [Path(source_path)]
-        else:
-            source_path = [Path(sp) for sp in source_path]
+        source_path = (
+            [Path(sp) for sp in source_path]
+            if isinstance(source_path, list)
+            else [Path(source_path)]
+        )
 
         if sys.version_info >= (3, 7):
             # compresslevel was added in 3.7

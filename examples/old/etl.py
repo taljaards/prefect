@@ -13,7 +13,7 @@ def transform(x):
 
 @task
 def load(y):
-    print("Received y: {}".format(y))
+    print(f"Received y: {y}")
 
 
 with Flow("ETL") as flow:

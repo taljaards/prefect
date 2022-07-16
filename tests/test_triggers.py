@@ -24,7 +24,7 @@ def generate_states(success=0, failed=0, skipped=0, pending=0, retrying=0) -> di
         Retrying: retrying,
     }
 
-    states = dict()
+    states = {}
     for state, count in state_counts.items():
         for _ in range(count):
             states[Edge(Task(), Task())] = state()

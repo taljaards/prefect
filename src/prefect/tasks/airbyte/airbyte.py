@@ -61,17 +61,17 @@ class AirbyteClient:
             return session
 
     def _check_health_status(self, session):
-        get_connection_url = self.airbyte_base_url + "/health/"
+        get_connection_url = f"{self.airbyte_base_url}/health/"
         try:
             response = session.get(get_connection_url)
             self.logger.debug("Health check response: %s", response.json())
             key = "available" if "available" in response.json() else "db"
-            health_status = response.json()[key]
-            if not health_status:
+            if health_status := response.json()[key]:
+                return True
+            else:
                 raise AirbyteServerNotHealthyException(
                     f"Airbyte Server health status: {health_status}"
                 )
-            return True
         except RequestException as e:
             raise AirbyteServerNotHealthyException(e)
 
@@ -87,14 +87,13 @@ class AirbyteClient:
         Returns:
             - byte array of Airbyte configuration data
         """
-        get_connection_url = self.airbyte_base_url + "/deployment/export/"
+        get_connection_url = f"{self.airbyte_base_url}/deployment/export/"
 
         try:
             response = session.post(get_connection_url)
             if response.status_code == 200:
                 self.logger.debug("Export configuration response: %s", response)
-                export_config = response.content
-                return export_config
+                return response.content
         except RequestException as e:
             raise AirbyteExportConfigurationFailed(e)
 
@@ -166,7 +165,7 @@ class AirbyteConnectionTask(Task):
         super().__init__(**kwargs)
 
     def _get_connection_status(self, session, airbyte_base_url, connection_id):
-        get_connection_url = airbyte_base_url + "/connections/get/"
+        get_connection_url = f"{airbyte_base_url}/connections/get/"
 
         # TODO - Missing authentication because Airbyte servers currently do not support authentication
         try:
@@ -177,16 +176,14 @@ class AirbyteConnectionTask(Task):
 
             response.raise_for_status()
 
-            # check whether a schedule exists ...
-            schedule = response.json()["schedule"]
-            if schedule:
+            if schedule := response.json()["schedule"]:
                 self.logger.warning("Found existing Connection schedule, removing ...")
 
                 # mandatory fields for Connection update ...
                 sync_catalog = response.json()["syncCatalog"]
                 connection_status = response.json()["status"]
 
-                update_connection_url = airbyte_base_url + "/connections" "/update/"
+                update_connection_url = f"{airbyte_base_url}/connections/update/"
                 response2 = session.post(
                     update_connection_url,
                     json={
@@ -222,7 +219,7 @@ class AirbyteConnectionTask(Task):
         Returns: created_at - timestamp of sync job creation
 
         """
-        get_connection_url = airbyte_base_url + "/connections/sync/"
+        get_connection_url = f"{airbyte_base_url}/connections/sync/"
 
         # TODO - missing authentication ...
         try:
@@ -248,7 +245,7 @@ class AirbyteConnectionTask(Task):
             raise AirbyteServerNotHealthyException(e)
 
     def _get_job_status(self, session, airbyte_base_url, job_id):
-        get_connection_url = airbyte_base_url + "/jobs/get/"
+        get_connection_url = f"{airbyte_base_url}/jobs/get/"
         try:
             response = session.post(get_connection_url, json={"id": job_id})
             if response.status_code == 200:
@@ -468,6 +465,4 @@ class AirbyteConfigurationExport(Task):
         session = airbyte._establish_session()
 
         self.logger.info("Initiating export of Airbyte configuration")
-        airbyte_config = airbyte._export_configuration(session)
-
-        return airbyte_config
+        return airbyte._export_configuration(session)

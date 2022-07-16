@@ -147,12 +147,10 @@ class CensusSyncTask(Task):
         """
         pattern = r"https:\/\/bearer:secret-token:(.*)@app.getcensus.com\/api\/v1\/syncs\/(\d*)\/trigger"
         url_pattern = re.compile(pattern)
-        # Making sure it is a valid api trigger.
-        confirmed_pattern = url_pattern.match(api_trigger)
-
-        if not confirmed_pattern:
+        if confirmed_pattern := url_pattern.match(api_trigger):
+            return confirmed_pattern
+        else:
             raise ValueError(
                 """Invalid parameter for `api_trigger` please paste directly from the Census
                                 sync configuration page. This is CaSe SenSITiVe."""
             )
-        return confirmed_pattern

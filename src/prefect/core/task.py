@@ -76,11 +76,9 @@ def _validate_run_signature(run: Callable) -> None:
         )
 
     reserved_kwargs = ["upstream_tasks", "mapped", "task_args", "flow"]
-    violations = [kw for kw in reserved_kwargs if kw in run_sig.args]
-    if violations:
-        msg = "Tasks cannot have the following argument names: {}.".format(
-            ", ".join(violations)
-        )
+    if violations := [kw for kw in reserved_kwargs if kw in run_sig.args]:
+        msg = f'Tasks cannot have the following argument names: {", ".join(violations)}.'
+
         msg += " These are reserved keyword arguments."
         raise ValueError(msg)
 
@@ -117,10 +115,7 @@ def _infer_run_nout(run: Callable) -> Optional[int]:
         if len(args) == 1 and args[0] == ():
             return 0
         # Variable-length tuples have Ellipsis as the 2nd arg
-        if len(args) == 2 and args[1] == Ellipsis:
-            return None
-        # All other Tuples are length-of args
-        return len(args)
+        return None if len(args) == 2 and args[1] == Ellipsis else len(args)
     return None
 
 
@@ -350,12 +345,11 @@ class Task(metaclass=TaskMetaclass):
         self.name = name or type(self).__name__
         self.slug = slug
 
-        positional_args = [
+        if positional_args := [
             name
             for name, parameter in self.__signature__.parameters.items()
             if parameter.kind == inspect.Parameter.POSITIONAL_ONLY
-        ]
-        if positional_args:
+        ]:
             raise TypeError(
                 "Found positional-only parameters in the function signature for "
                 f"task {self.name}: {positional_args}. Prefect passes arguments "
@@ -388,17 +382,14 @@ class Task(metaclass=TaskMetaclass):
             raise ValueError(
                 "A datetime.timedelta `retry_delay` must be provided if max_retries > 0"
             )
-        if retry_on and not max_retries > 0:
+        if retry_on and max_retries <= 0:
             raise ValueError(
                 "A number of `max_retries` must be provided if `retry_on` is set."
             )
 
         self.retry_on: Optional[Set[Type[Exception]]] = None
         if retry_on:
-            if not isinstance(retry_on, Iterable):
-                self.retry_on = {retry_on}
-            else:
-                self.retry_on = set(retry_on)
+            self.retry_on = set(retry_on) if isinstance(retry_on, Iterable) else {retry_on}
             for v in self.retry_on:
                 if not isinstance(v, type):
                     raise TypeError(
@@ -494,9 +485,10 @@ class Task(metaclass=TaskMetaclass):
         # if new task creations are being tracked, add this task
         # this makes it possible to give guidance to users that forget
         # to add tasks to a flow
-        if "_unused_task_tracker" in prefect.context:
-            if not isinstance(self, prefect.tasks.core.constants.Constant):
-                prefect.context._unused_task_tracker.add(self)
+        if "_unused_task_tracker" in prefect.context and not isinstance(
+            self, prefect.tasks.core.constants.Constant
+        ):
+            prefect.context._unused_task_tracker.add(self)
 
     def __repr__(self) -> str:
         return "<Task: {self.name}>".format(self=self)
@@ -567,7 +559,7 @@ class Task(metaclass=TaskMetaclass):
         new = copy.copy(self)
 
         if new.slug and "slug" not in task_args:
-            task_args["slug"] = new.slug + "-copy"
+            task_args["slug"] = f"{new.slug}-copy"
 
         # check task_args
         for attr, val in task_args.items():
@@ -673,12 +665,11 @@ class Task(metaclass=TaskMetaclass):
         """
         new = self.copy(**(task_args or {}))
 
-        positional_args = [
+        if positional_args := [
             name
             for name, parameter in inspect.signature(new).parameters.items()
             if parameter.kind == inspect.Parameter.POSITIONAL_ONLY
-        ]
-        if positional_args:
+        ]:
             raise TypeError(
                 "Prefect passes arguments to task as keyword arguments. "
                 f"Positional-Only arguments found : {positional_args}"
@@ -727,13 +718,11 @@ class Task(metaclass=TaskMetaclass):
         signature = inspect.signature(self.run)
         callargs = dict(signature.bind(*args, **kwargs).arguments)  # type: Dict
 
-        # bind() compresses all variable keyword arguments under the ** argument name,
-        # so we expand them explicitly
-        var_kw_arg = next(
-            (p for p in signature.parameters.values() if p.kind == VAR_KEYWORD), None
-        )
-        if var_kw_arg:
-            callargs.update(callargs.pop(var_kw_arg.name, {}))
+        if var_kw_arg := next(
+            (p for p in signature.parameters.values() if p.kind == VAR_KEYWORD),
+            None,
+        ):
+            callargs |= callargs.pop(var_kw_arg.name, {})
 
         flow = flow or prefect.context.get("flow", None)
         if not flow:

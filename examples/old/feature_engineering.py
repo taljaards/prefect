@@ -50,7 +50,7 @@ def download_data(link: str, target_filename: str):
         - link (str): the URL from which data will be requested
         - target_filename (str): the desired filename of the result
     """
-    target_filepath = "data/" + target_filename
+    target_filepath = f"data/{target_filename}"
     if not os.path.exists(target_filepath):
         urlretrieve(link, target_filepath)
 
@@ -60,7 +60,7 @@ def unzip_data(zip_filename: str):
     """
     Unzip a file and place its contents in the data/ directory.
     """
-    zip_filepath = "data/" + zip_filename
+    zip_filepath = f"data/{zip_filename}"
     with zipfile.ZipFile(zip_filepath, "r") as zip_ref:
         zip_ref.extractall("data")
 
@@ -70,7 +70,7 @@ def get_rootdir(zip_filename: str):
     """
     Get the name of the root directory of the contents of a zip following extraction.
     """
-    zip_filepath = "data/" + zip_filename
+    zip_filepath = f"data/{zip_filename}"
     with zipfile.ZipFile(zip_filepath, "r") as zip_ref:
         rootdir = zip_ref.namelist()[0]
     return rootdir
@@ -94,7 +94,7 @@ def read_csv(
     Returns:
         - pd.DataFrame: the contents of the CSV
     """
-    filepath = os.path.join("data", rootdir, "core", table_name + ".csv")
+    filepath = os.path.join("data", rootdir, "core", f"{table_name}.csv")
     df = pd.read_csv(filepath, nrows=None)
     return df.drop(exclude_cols, axis=1)
 

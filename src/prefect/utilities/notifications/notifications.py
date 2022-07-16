@@ -78,9 +78,9 @@ def email_message_formatter(
     tracked_obj: TrackedObjectType, state: "prefect.engine.state.State", email_to: str
 ) -> str:
     if isinstance(state.result, Exception):
-        msg = "<pre>{}</pre>".format(repr(state.result))
+        msg = f"<pre>{repr(state.result)}</pre>"
     else:
-        msg = '"{}"'.format(state.message)
+        msg = f'"{state.message}"'
 
     html = """
     <html>
@@ -113,8 +113,9 @@ def email_message_formatter(
     contents.attach(MIMEText(html.format(color=color, text=text), "html"))
 
     contents["Subject"] = Header(
-        "Prefect state change notification for {}".format(tracked_obj.name), "UTF-8"
+        f"Prefect state change notification for {tracked_obj.name}", "UTF-8"
     )
+
     contents["From"] = "notifications@prefect.io"
     contents["To"] = email_to
 
@@ -129,7 +130,7 @@ def slack_message_formatter(
     # see https://api.slack.com/docs/message-attachments
     fields = []
     if isinstance(state.result, Exception):
-        value = "```{}```".format(repr(state.result))
+        value = f"```{repr(state.result)}```"
     else:
         value = cast(str, state.message)
     if value is not None:
@@ -165,8 +166,7 @@ def slack_message_formatter(
         if url:
             notification_payload.update(title_link=url)
 
-    data = {"attachments": [notification_payload]}
-    return data
+    return {"attachments": [notification_payload]}
 
 
 @curry
@@ -223,7 +223,7 @@ def gmail_notifier(
         return new_state
 
     if only_states and not any(
-        [isinstance(new_state, included) for included in only_states]
+        isinstance(new_state, included) for included in only_states
     ):
         return new_state
 
@@ -234,9 +234,7 @@ def gmail_notifier(
     try:
         server.sendmail("notifications@prefect.io", username, body)
     except Exception as exc:
-        raise ValueError(
-            "Email notification for {} failed".format(tracked_obj)
-        ) from exc
+        raise ValueError(f"Email notification for {tracked_obj} failed") from exc
     finally:
         server.quit()
 
@@ -305,7 +303,7 @@ def slack_notifier(
         return new_state
 
     if only_states and not any(
-        [isinstance(new_state, included) for included in only_states]
+        isinstance(new_state, included) for included in only_states
     ):
         return new_state
 
@@ -316,5 +314,5 @@ def slack_notifier(
     form_data = slack_message_formatter(tracked_obj, new_state, backend_info)
     r = requests.post(webhook_url, json=form_data, proxies=proxies)
     if not r.ok:
-        raise ValueError("Slack notification for {} failed".format(tracked_obj))
+        raise ValueError(f"Slack notification for {tracked_obj} failed")
     return new_state

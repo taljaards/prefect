@@ -25,7 +25,7 @@ def signal_from_state(state: state.State) -> Type["PrefectStateSignal"]:
         - ValueError: if no signal matches the provided state
     """
     unprocessed = set(PrefectStateSignal.__subclasses__())
-    signals = dict()
+    signals = {}
     while unprocessed:
         sig = unprocessed.pop()
         signals[sig._state_cls.__name__] = sig

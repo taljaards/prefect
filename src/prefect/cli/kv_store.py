@@ -91,8 +91,7 @@ def list_command():
     List all key value pairs
     """
     try:
-        result = kv_store.list_keys()
-        if result:
+        if result := kv_store.list_keys():
             click.secho("\n".join(result), fg="green")
         else:
             click.secho("No keys found", fg="yellow")

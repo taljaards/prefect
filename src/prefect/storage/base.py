@@ -74,7 +74,7 @@ class Storage(metaclass=ABCMeta):
         return []
 
     def __repr__(self) -> str:
-        return "<Storage: {}>".format(type(self).__name__)
+        return f"<Storage: {type(self).__name__}>"
 
     def get_flow(self, flow_name: str) -> "Flow":
         """
@@ -118,9 +118,7 @@ class Storage(metaclass=ABCMeta):
         """
         Method for determining whether an object is contained within this storage.
         """
-        if not isinstance(obj, str):
-            return False
-        return obj in self.flows
+        return obj in self.flows if isinstance(obj, str) else False
 
     def build(self) -> "Storage":
         """

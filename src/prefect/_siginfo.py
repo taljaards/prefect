@@ -4,12 +4,9 @@ import time
 
 
 def load_images():
-    images = []
     cur_path = os.path.dirname(__file__)
     img_path = os.path.join(cur_path, "_sig29/{}.txt")
-    for i in range(1, 7):
-        images.append(open(img_path.format(i), "r").read())
-    return images
+    return [open(img_path.format(i), "r").read() for i in range(1, 7)]
 
 
 def sig_handler(*args, **kwargs):

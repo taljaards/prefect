@@ -13,10 +13,10 @@ class Position:
 
     def validate(self) -> None:
         if self.lat < -90 or self.lat > 90:
-            raise ValueError("Bad latitude given ({})".format(self.lat))
+            raise ValueError(f"Bad latitude given ({self.lat})")
 
         if self.long < -180 or self.long > 180:
-            raise ValueError("Bad longitude given ({})".format(self.long))
+            raise ValueError(f"Bad longitude given ({self.long})")
 
 
 # Bounding box surrounding the point at given coordinates,

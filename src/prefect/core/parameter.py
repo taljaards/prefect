@@ -96,12 +96,11 @@ class Parameter(Task):
     def run(self) -> Any:
         params = prefect.context.get("parameters") or {}
         if self.required and self.name not in params:
-            self.logger.debug(
-                'Parameter "{}" was required but not provided.'.format(self.name)
-            )
+            self.logger.debug(f'Parameter "{self.name}" was required but not provided.')
             raise prefect.engine.signals.FAIL(
-                'Parameter "{}" was required but not provided.'.format(self.name)
+                f'Parameter "{self.name}" was required but not provided.'
             )
+
         return params.get(self.name, self.default)
 
     # Serialization ------------------------------------------------------------

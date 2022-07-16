@@ -59,9 +59,7 @@ def merge_run_task_kwargs(opts1: dict, opts2: dict) -> dict:
             if k != "containerOverrides":
                 out_overrides[k] = v
 
-    # Entries in `containerOverrides` are paired by name, and then merged
-    container_overrides = overrides.get("containerOverrides")
-    if container_overrides:
+    if container_overrides := overrides.get("containerOverrides"):
         out_container_overrides = out_overrides.setdefault("containerOverrides", [])
         for entry in container_overrides:
             for out_entry in out_container_overrides:
@@ -262,15 +260,13 @@ class ECSAgent(Agent):
         self.logger.debug("Inferring default `networkConfiguration`...")
 
         ec2 = get_boto_client("ec2", **self.boto_kwargs)
-        vpcs = ec2.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])[
-            "Vpcs"
-        ]
-        if vpcs:
+        if vpcs := ec2.describe_vpcs(
+            Filters=[{"Name": "isDefault", "Values": ["true"]}]
+        )["Vpcs"]:
             vpc_id = vpcs[0]["VpcId"]
-            subnets = ec2.describe_subnets(
+            if subnets := ec2.describe_subnets(
                 Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
-            )["Subnets"]
-            if subnets:
+            )["Subnets"]:
                 config = {
                     "awsvpcConfiguration": {
                         "subnets": [s["SubnetId"] for s in subnets],
@@ -487,7 +483,7 @@ class ECSAgent(Agent):
             overrides["executionRoleArn"] = run_config.execution_role_arn
         elif taskdef.get("executionRoleArn"):
             overrides["executionRoleArn"] = taskdef["executionRoleArn"]
-        elif self.execution_role_arn and not taskdef.get("executionRoleArn"):
+        elif self.execution_role_arn:
             overrides["executionRoleArn"] = self.execution_role_arn
 
         # Set resource requirements, if provided
@@ -512,7 +508,7 @@ class ECSAgent(Agent):
         # - Values required for flow execution, hardcoded below
         # - Values set on the ECSRun object
         # - Values set using the `--env` CLI flag on the agent
-        env.update(self.env_vars)
+        env |= self.env_vars
         if run_config.env:
             env.update(run_config.env)
         env.update(

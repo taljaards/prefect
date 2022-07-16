@@ -92,13 +92,9 @@ class CloudFlowRunner(FlowRunner):
                 }
             }
             flow_run = self.client.graphql(query).data.flow_run_by_pk
-            if not flow_run.flow.settings.get("heartbeat_enabled", True):
-                return False
-            return True
+            return bool(flow_run.flow.settings.get("heartbeat_enabled", True))
         except Exception:
-            self.logger.exception(
-                "Heartbeat failed for Flow '{}'".format(self.flow.name)
-            )
+            self.logger.exception(f"Heartbeat failed for Flow '{self.flow.name}'")
             return False
 
     def call_runner_target_handlers(self, old_state: State, new_state: State) -> State:
@@ -120,7 +116,7 @@ class CloudFlowRunner(FlowRunner):
                 old_state=old_state, new_state=new_state
             )
         except Exception as exc:
-            msg = "Exception raised while calling state handlers: {}".format(repr(exc))
+            msg = f"Exception raised while calling state handlers: {repr(exc)}"
             self.logger.exception(msg)
             if raise_on_exception:
                 raise exc
@@ -146,15 +142,12 @@ class CloudFlowRunner(FlowRunner):
                 raise ENDRUN(state=state) from exc
 
             self.logger.debug(
-                "Version lock encountered, proceeding with state {}...".format(
-                    type(state).__name__
-                )
+                f"Version lock encountered, proceeding with state {type(state).__name__}..."
             )
+
             new_state = state
         except Exception as exc:
-            self.logger.exception(
-                "Failed to set flow state with error: {}".format(repr(exc))
-            )
+            self.logger.exception(f"Failed to set flow state with error: {repr(exc)}")
             raise ENDRUN(state=new_state) from exc
 
         if state.is_queued():
@@ -369,9 +362,7 @@ class CloudFlowRunner(FlowRunner):
         try:
             flow_run_info = self.client.get_flow_run_info(flow_run_id)
         except Exception as exc:
-            self.logger.debug(
-                "Failed to retrieve flow state with error: {}".format(repr(exc))
-            )
+            self.logger.debug(f"Failed to retrieve flow state with error: {repr(exc)}")
             if state is None:
                 state = Failed(
                     message="Could not retrieve state from Prefect Cloud", result=exc

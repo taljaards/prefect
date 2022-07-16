@@ -47,7 +47,7 @@ class EnvVarSecret(PrefectSecret):
         if name is None:
             raise ValueError("A secret name must be provided.")
         if self.raise_if_missing and name not in os.environ:
-            raise ValueError("Environment variable not set: {}".format(name))
+            raise ValueError(f"Environment variable not set: {name}")
         value = os.getenv(name)
         if value is not None and self.cast is not None:
             value = self.cast(value)

@@ -23,11 +23,7 @@ class AWSParametersManager(SecretBase):
     def __init__(self, parameter_name: str = None, boto_kwargs: dict = None, **kwargs):
         self.parameter_name = parameter_name
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     @defaults_from_attrs("parameter_name", "boto_kwargs")
@@ -60,6 +56,4 @@ class AWSParametersManager(SecretBase):
 
         parameter_response = ssm_client.get_parameter(Name=parameter_name)
 
-        parameter_value = str(parameter_response["Parameter"]["Value"])
-
-        return parameter_value
+        return str(parameter_response["Parameter"]["Value"])

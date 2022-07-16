@@ -108,5 +108,4 @@ class SodaSQLScan(Task):
             scan_def=scan_def, warehouse_def=warehouse_def
         )
         scan = scan_builder.build()
-        result = scan.execute()
-        return result
+        return scan.execute()

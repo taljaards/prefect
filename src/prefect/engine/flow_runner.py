@@ -91,7 +91,7 @@ class FlowRunner(Runner):
         super().__init__(state_handlers=state_handlers)
 
     def __repr__(self) -> str:
-        return "<{}: {}>".format(type(self).__name__, self.flow.name)
+        return f"<{type(self).__name__}: {self.flow.name}>"
 
     def call_runner_target_handlers(self, old_state: State, new_state: State) -> State:
         """
@@ -242,7 +242,7 @@ class FlowRunner(Runner):
             - State: `State` representing the final post-run state of the `Flow`.
 
         """
-        self.logger.info("Beginning Flow run for '{}'".format(self.flow.name))
+        self.logger.info(f"Beginning Flow run for '{self.flow.name}'")
 
         # make copies to avoid modifying user inputs
         parameters = dict(parameters or {})
@@ -250,13 +250,13 @@ class FlowRunner(Runner):
         task_contexts = dict(task_contexts or {})
         # Default to global context, with provided context as override
         run_context = dict(prefect.context)
-        run_context.update(context or {})
+        run_context |= (context or {})
 
         if executor is None:
             # Use the executor on the flow, if configured
             executor = getattr(self.flow, "executor", None)
-            if executor is None:
-                executor = prefect.engine.get_default_executor_class()()
+        if executor is None:
+            executor = prefect.engine.get_default_executor_class()()
 
         self.logger.debug("Using executor type %s", type(executor).__name__)
 
@@ -285,17 +285,15 @@ class FlowRunner(Runner):
         except ENDRUN as exc:
             state = exc.state
 
-        # All other exceptions are trapped and turned into Failed states
         except Exception as exc:
-            self.logger.exception(
-                "Unexpected error while running flow: {}".format(repr(exc))
-            )
+            self.logger.exception(f"Unexpected error while running flow: {repr(exc)}")
             if run_context.get("raise_on_exception"):
                 raise exc
             new_state = Failed(
-                message="Unexpected error while running flow: {}".format(repr(exc)),
+                message=f"Unexpected error while running flow: {repr(exc)}",
                 result=exc,
             )
+
             state = self.handle_state_change(state or Pending(), new_state)
 
         return state
@@ -323,14 +321,17 @@ class FlowRunner(Runner):
         Raises:
             - ENDRUN: if the flow is Scheduled with a future scheduled time
         """
-        if isinstance(state, Scheduled):
-            if state.start_time and state.start_time > pendulum.now("utc"):
-                self.logger.debug(
-                    "Flow '{name}': start_time has not been reached; ending run.".format(
-                        name=self.flow.name
-                    )
+        if (
+            isinstance(state, Scheduled)
+            and state.start_time
+            and state.start_time > pendulum.now("utc")
+        ):
+            self.logger.debug(
+                "Flow '{name}': start_time has not been reached; ending run.".format(
+                    name=self.flow.name
                 )
-                raise ENDRUN(state)
+            )
+            raise ENDRUN(state)
         return state
 
     @call_state_handlers
@@ -419,7 +420,7 @@ class FlowRunner(Runner):
         # when running on Dask, we want to avoid serializing futures, so instead
         # of storing child task states in the `map_states` attribute we instead store
         # in this dictionary and only after they are resolved do we attach them to the Mapped state
-        mapped_children = dict()  # type: Dict[Task, list]
+        mapped_children = {}
 
         if not state.is_running():
             self.logger.info("Flow is not in a Running state.")
@@ -502,11 +503,12 @@ class FlowRunner(Runner):
                     # if the edge is flattened and not the result of a map, then we
                     # preprocess the upstream states. If it IS the result of a
                     # map, it will be handled in `prepare_upstream_states_for_mapping`
-                    if edge.flattened:
-                        if not isinstance(upstream_states[edge], Mapped):
-                            upstream_states[edge] = executor.submit(
-                                executors.flatten_upstream_state, upstream_states[edge]
-                            )
+                    if edge.flattened and not isinstance(
+                        upstream_states[edge], Mapped
+                    ):
+                        upstream_states[edge] = executor.submit(
+                            executors.flatten_upstream_state, upstream_states[edge]
+                        )
 
                     # this checks whether the task is a "reduce" task for a mapped pipeline
                     # and if so, collects the appropriate upstream children
@@ -535,13 +537,11 @@ class FlowRunner(Runner):
                     )
 
                 # handle mapped tasks
-                if any(edge.mapped for edge in upstream_states.keys()):
+                if any(edge.mapped for edge in upstream_states):
 
                     # wait on upstream states to determine the width of the pipeline
                     # this is the key to depth-first execution
-                    upstream_states = executor.wait(
-                        {e: state for e, state in upstream_states.items()}
-                    )
+                    upstream_states = executor.wait(dict(upstream_states))
                     # we submit the task to the task runner to determine if
                     # we can proceed with mapping - if the new task state is not a Mapped
                     # state then we don't proceed

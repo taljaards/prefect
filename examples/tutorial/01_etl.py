@@ -17,8 +17,7 @@ def main():
     print("cleaning & transform aircraft data...")
     live_aircraft_data = []
     for raw_vector in raw_aircraft_data:
-        vector = aclib.clean_vector(raw_vector)
-        if vector:
+        if vector := aclib.clean_vector(raw_vector):
             aclib.add_airline_info(vector, ref_data.airlines)
             live_aircraft_data.append(vector)
 

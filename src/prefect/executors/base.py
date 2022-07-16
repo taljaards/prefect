@@ -13,7 +13,7 @@ class Executor:
         self.logger = get_logger(type(self).__name__)
 
     def __repr__(self) -> str:
-        return "<Executor: {}>".format(type(self).__name__)
+        return f"<Executor: {type(self).__name__}>"
 
     @contextmanager
     def start(self) -> Iterator[None]:

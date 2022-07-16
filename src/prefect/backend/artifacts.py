@@ -47,9 +47,11 @@ def create_link_artifact(link: str) -> Optional[str]:
     Returns:
         - str: the task run artifact ID
     """
-    if not _running_with_backend():
-        return None
-    return _create_task_run_artifact("link", {"link": link})
+    return (
+        _create_task_run_artifact("link", {"link": link})
+        if _running_with_backend()
+        else None
+    )
 
 
 def update_link_artifact(task_run_artifact_id: str, link: str) -> None:
@@ -80,9 +82,11 @@ def create_markdown_artifact(markdown: str) -> Optional[str]:
     Returns:
         - str: the task run artifact ID
     """
-    if not _running_with_backend():
-        return None
-    return _create_task_run_artifact("markdown", {"markdown": markdown})
+    return (
+        _create_task_run_artifact("markdown", {"markdown": markdown})
+        if _running_with_backend()
+        else None
+    )
 
 
 def update_markdown_artifact(task_run_artifact_id: str, markdown: str) -> None:

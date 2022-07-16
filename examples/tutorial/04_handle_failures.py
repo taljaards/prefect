@@ -21,9 +21,7 @@ def extract_live_data(airport, radius, ref_data):
         area = aclib.bounding_box(airport_position, radius)
 
     print("fetching live aircraft data...")
-    raw_aircraft_data = aclib.fetch_live_aircraft_data(area=area, simulate_failures=2)
-
-    return raw_aircraft_data
+    return aclib.fetch_live_aircraft_data(area=area, simulate_failures=2)
 
 
 @task
@@ -32,8 +30,7 @@ def transform(raw_aircraft_data, ref_data):
 
     live_aircraft_data = []
     for raw_vector in raw_aircraft_data:
-        vector = aclib.clean_vector(raw_vector)
-        if vector:
+        if vector := aclib.clean_vector(raw_vector):
             aclib.add_airline_info(vector, ref_data.airlines)
             live_aircraft_data.append(vector)
 

@@ -435,8 +435,11 @@ def test_docker_agent_deploy_flow_sets_container_name_with_index(api, collision_
     )
 
     expected_name = (
-        "flow-run-name" if not collision_count else f"flow-run-name-{collision_count}"
+        f"flow-run-name-{collision_count}"
+        if collision_count
+        else "flow-run-name"
     )
+
     assert api.create_container.call_args[1]["name"] == expected_name
 
 

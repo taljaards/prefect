@@ -28,11 +28,7 @@ class AWSSecretsManager(SecretBase):
     def __init__(self, secret: str = None, boto_kwargs: dict = None, **kwargs):
         self.secret = secret
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     @defaults_from_attrs("secret")

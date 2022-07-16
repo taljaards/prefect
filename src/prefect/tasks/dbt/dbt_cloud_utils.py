@@ -97,7 +97,7 @@ def trigger_job_run(
     Raises:
         - TriggerDbtCloudRunFailed: when the response code is != 200
     """
-    data = additional_args if additional_args else {}
+    data = additional_args or {}
     data["cause"] = cause
     trigger_request = requests.post(
         url=__DBT_CLOUD_TRIGGER_JOB_API_ENDPOINT_V2.format(

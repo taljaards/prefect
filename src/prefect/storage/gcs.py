@@ -79,15 +79,14 @@ class GCS(Storage):
 
         bucket = self._gcs_client.get_bucket(self.bucket)
 
-        self.logger.info("Downloading {} from {}".format(flow_location, self.bucket))
+        self.logger.info(f"Downloading {flow_location} from {self.bucket}")
 
         blob = bucket.get_blob(flow_location)
         if not blob:
             raise FlowStorageError(
-                "Flow not found in bucket: flow={} bucket={}".format(
-                    flow_location, self.bucket
-                )
+                f"Flow not found in bucket: flow={flow_location} bucket={self.bucket}"
             )
+
         # Support GCS < 1.31
         content = (
             blob.download_as_bytes()
@@ -116,15 +115,16 @@ class GCS(Storage):
 
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
 
+
         # create key for Flow that uniquely identifies Flow object in GCS
-        key = self.key or "{}/{}".format(
-            slugify(flow.name), slugify(pendulum.now("utc").isoformat())
+        key = (
+            self.key
+            or f'{slugify(flow.name)}/{slugify(pendulum.now("utc").isoformat())}'
         )
+
 
         self.flows[flow.name] = key
         self._flows[flow.name] = flow
@@ -145,22 +145,20 @@ class GCS(Storage):
             if self.local_script_path:
                 for flow_name, flow in self._flows.items():
                     self.logger.info(
-                        "Uploading script {} to {} in {}".format(
-                            self.local_script_path, self.flows[flow.name], self.bucket
-                        )
+                        f"Uploading script {self.local_script_path} to {self.flows[flow.name]} in {self.bucket}"
                     )
+
 
                     bucket = self._gcs_client.get_bucket(self.bucket)
                     blob = bucket.blob(blob_name=self.flows[flow_name])
                     with open(self.local_script_path) as file_obj:
                         blob.upload_from_file(file_obj)
-            else:
-                if not self.key:
-                    raise ValueError(
-                        "A `key` must be provided to show where flow `.py` file is stored in GCS or "
-                        "provide a `local_script_path` pointing to a local script that contains the "
-                        "flow."
-                    )
+            elif not self.key:
+                raise ValueError(
+                    "A `key` must be provided to show where flow `.py` file is stored in GCS or "
+                    "provide a `local_script_path` pointing to a local script that contains the "
+                    "flow."
+                )
             return self
 
         for flow_name, flow in self._flows.items():
@@ -170,9 +168,7 @@ class GCS(Storage):
 
             blob = bucket.blob(blob_name=self.flows[flow_name])
 
-            self.logger.info(
-                "Uploading {} to {}".format(self.flows[flow_name], self.bucket)
-            )
+            self.logger.info(f"Uploading {self.flows[flow_name]} to {self.bucket}")
 
             blob.upload_from_string(content)
 
@@ -182,5 +178,4 @@ class GCS(Storage):
     def _gcs_client(self):  # type: ignore
         from prefect.utilities.gcp import get_storage_client
 
-        client = get_storage_client(project=self.project)
-        return client
+        return get_storage_client(project=self.project)

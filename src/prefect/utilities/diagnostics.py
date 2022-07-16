@@ -49,12 +49,12 @@ def config_overrides(include_secret_names: bool = False) -> dict:
         return True
 
     # Load the default config to compare values
-    default_config = dict()
+    default_config = {}
     default_config_path = prefect.configuration.DEFAULT_CONFIG
     if default_config_path and os.path.isfile(default_config_path):
         default_config = prefect.configuration.load_toml(default_config_path)
 
-    user_config = dict()  # type: ignore
+    user_config = {}
     user_config_path = prefect.configuration.USER_CONFIG
     if user_config_path and os.path.isfile(
         str(prefect.configuration.interpolate_env_vars(user_config_path))
@@ -95,10 +95,11 @@ def environment_variables() -> dict:
     Returns:
         - dict: a dictionary containing names of set Prefect environment variables
     """
-    env_vars = list()
-    for env_var, _ in os.environ.items():
-        if env_var.startswith(prefect.configuration.ENV_VAR_PREFIX + "__"):
-            env_vars.append(env_var)
+    env_vars = [
+        env_var
+        for env_var, _ in os.environ.items()
+        if env_var.startswith(f"{prefect.configuration.ENV_VAR_PREFIX}__")
+    ]
 
     return dict(env_vars=env_vars)
 
@@ -150,11 +151,7 @@ def flow_information(flow: "prefect.Flow") -> dict:
         storage = False  # type: ignore
 
     # Check presence of a result handler
-    if flow.result:
-        result = {"type": type(flow.result).__name__}
-    else:
-        result = False  # type: ignore
-
+    result = {"type": type(flow.result).__name__} if flow.result else False
     # Check presence of a schedule
     if flow.schedule:
         schedule = {"type": type(flow.schedule).__name__, **flow.schedule.__dict__}
@@ -188,9 +185,9 @@ def diagnostic_info(
     Returns:
         - str: a string representation of the full diagnostic information
     """
-    aggregate_info = dict()
+    aggregate_info = {}
 
-    aggregate_info.update(system_information())
+    aggregate_info |= system_information()
     aggregate_info.update(config_overrides(include_secret_names))
     aggregate_info.update(environment_variables())
 

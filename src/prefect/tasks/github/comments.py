@@ -73,13 +73,12 @@ class CreateIssueComment(Task):
         # the 'import prefect' time low
         import requests
 
-        url = "https://api.github.com/repos/{}/issues/{}/comments".format(
-            repo, issue_number
-        )
+        url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
         headers = {
-            "AUTHORIZATION": "token {}".format(token),
+            "AUTHORIZATION": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+
         issue = {"body": body}
 
         # send the request

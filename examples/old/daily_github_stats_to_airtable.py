@@ -23,12 +23,11 @@ repo_stats = GetRepoInfo(
 
 @task
 def process_stats(stats):
-    data = {
+    return {
         "Stars": stats["stargazers_count"],
         "Watchers": stats["subscribers_count"],
         "Date": pendulum.now("utc").isoformat(),
     }
-    return data
 
 
 airtable = WriteAirtableRow(

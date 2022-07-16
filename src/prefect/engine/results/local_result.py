@@ -62,8 +62,7 @@ class LocalResult(Result):
     @property
     def default_location(self) -> str:
         fname = "prefect-result-" + slugify(pendulum.now("utc").isoformat())
-        location = os.path.join(self.dir, fname)
-        return location
+        return os.path.join(self.dir, fname)
 
     def read(self, location: str) -> Result:
         """
@@ -78,14 +77,14 @@ class LocalResult(Result):
         new = self.copy()
         new.location = location
 
-        self.logger.debug("Starting to read result from {}...".format(location))
+        self.logger.debug(f"Starting to read result from {location}...")
 
         with open(os.path.join(self.dir, location), "rb") as f:
             value = f.read()
 
         new.value = self.serializer.deserialize(value)
 
-        self.logger.debug("Finished reading result from {}...".format(location))
+        self.logger.debug(f"Finished reading result from {location}...")
 
         return new
 
@@ -107,7 +106,7 @@ class LocalResult(Result):
         new.value = value_
         assert new.location is not None
 
-        self.logger.debug("Starting to upload result to {}...".format(new.location))
+        self.logger.debug(f"Starting to upload result to {new.location}...")
 
         full_path = os.path.join(self.dir, new.location)
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -118,7 +117,7 @@ class LocalResult(Result):
             f.write(value)
 
         new.location = full_path
-        self.logger.debug("Finished uploading result to {}...".format(new.location))
+        self.logger.debug(f"Finished uploading result to {new.location}...")
 
         return new
 

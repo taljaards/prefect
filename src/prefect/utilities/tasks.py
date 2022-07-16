@@ -325,10 +325,7 @@ def pause_task(message: str = None, duration: timedelta = None) -> None:
         state.result[res] # a Success state
         ```
     """
-    if duration is not None:
-        start_time = pendulum.now("utc") + duration
-    else:
-        start_time = None
+    start_time = pendulum.now("utc") + duration if duration is not None else None
     if prefect.context.get("resume", False) is False:
         raise prefect.engine.signals.PAUSE(  # type: ignore
             message=message or "Pause signal raised during task execution.",

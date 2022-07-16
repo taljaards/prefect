@@ -82,11 +82,12 @@ class CreateGitHubPR(Task):
         # the 'import prefect' time low
         import requests
 
-        url = "https://api.github.com/repos/{}/pulls".format(repo)
+        url = f"https://api.github.com/repos/{repo}/pulls"
         headers = {
-            "AUTHORIZATION": "token {}".format(token),
+            "AUTHORIZATION": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+
         pr = {"title": title, "body": body, "head": head, "base": base}
 
         # send the request

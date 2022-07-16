@@ -73,11 +73,9 @@ class OpenAsanaToDo(Task):
 
         client = asana.Client.access_token(token)
 
-        result = client.tasks.create_task(
+        if result := client.tasks.create_task(
             {"name": name, "notes": notes, "projects": [project]}
-        )
-
-        if not result:
+        ):
+            return result
+        else:
             raise ValueError("Creating Asana Task failed")
-
-        return result

@@ -37,11 +37,10 @@ class GCSBaseTask(Task):
         try:
             bucket = client.get_bucket(bucket)
         except NotFound as exc:
-            if create_bucket is True:
-                self.logger.debug("Bucket {} not found; creating...".format(bucket))
-                bucket = client.create_bucket(bucket)
-            else:
+            if not create_bucket:
                 raise exc
+            self.logger.debug(f"Bucket {bucket} not found; creating...")
+            bucket = client.create_bucket(bucket)
         return bucket
 
     def _get_blob(
@@ -53,7 +52,7 @@ class GCSBaseTask(Task):
     ):
         "Retrieves blob based on user settings."
         if blob is None:
-            blob = "prefect-" + context.get("task_run_id", "no-id-" + str(uuid.uuid4()))
+            blob = "prefect-" + context.get("task_run_id", f"no-id-{str(uuid.uuid4())}")
 
         if chunk_size is None:
             chunk_size = self.chunk_size

@@ -61,9 +61,7 @@ class BlobStorageDownload(Task):
         )
 
         client = blob_service.get_blob_client(container=container, blob=blob_name)
-        content_string = client.download_blob().content_as_text()
-
-        return content_string
+        return client.download_blob().content_as_text()
 
 
 class BlobStorageUpload(Task):

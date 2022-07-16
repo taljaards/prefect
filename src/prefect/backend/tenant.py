@@ -50,11 +50,7 @@ class TenantView:
                 f"where {where}: {tenants}"
             )
 
-        if not tenants:
-            return {}
-
-        tenant = tenants[0]
-        return tenant
+        return tenants[0] if tenants else {}
 
     @staticmethod
     def _query_for_tenants(

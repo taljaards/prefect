@@ -16,9 +16,7 @@ def lowercase_first_letter(s: str) -> str:
     """
     Given a string, returns that string with a lowercase first letter
     """
-    if s:
-        return s[0].lower() + s[1:]
-    return s
+    return s[0].lower() + s[1:] if s else s
 
 
 def multiline_indent(string: str, spaces: int) -> str:
@@ -64,10 +62,11 @@ class EnumValue:
         return hash((type(self), self.value))
 
     def __eq__(self, other: Any) -> Any:
-        if not isinstance(other, EnumValue):
-            return NotImplemented
-
-        return self.value == other.value
+        return (
+            self.value == other.value
+            if isinstance(other, EnumValue)
+            else NotImplemented
+        )
 
 
 def LiteralSetValue(value: list) -> str:
@@ -80,7 +79,7 @@ def LiteralSetValue(value: list) -> str:
     Args:
         - value (list): the value that should be represented as a literal set
     """
-    return "{" + ", ".join(v for v in value) + "}"
+    return "{" + ", ".join(value) + "}"
 
 
 class GQLObject:
@@ -258,11 +257,13 @@ def _parse_arguments_inner(arguments: Any) -> str:
         if len(arguments) == 0:
             return "{}"
 
-        formatted = []
-        for key, value in arguments.items():
-            formatted.append(
-                "{key}: {value}".format(key=key, value=_parse_arguments_inner(value))
+        formatted = [
+            "{key}: {value}".format(
+                key=key, value=_parse_arguments_inner(value)
             )
+            for key, value in arguments.items()
+        ]
+
         return "{ " + ", ".join(formatted) + " }"
     elif isinstance(arguments, (list, tuple, set, KeysView, ValuesView)):
         return "[" + ", ".join([_parse_arguments_inner(a) for a in arguments]) + "]"

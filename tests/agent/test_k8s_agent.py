@@ -203,7 +203,7 @@ def test_k8s_agent_generate_deployment_yaml_local_version(
 
     agent_yaml = deployment["spec"]["template"]["spec"]["containers"][0]
 
-    assert agent_yaml["image"] == "prefecthq/prefect:{}".format(version[1])
+    assert agent_yaml["image"] == f"prefecthq/prefect:{version[1]}"
 
 
 def test_k8s_agent_generate_deployment_yaml_latest(monkeypatch, cloud_api):

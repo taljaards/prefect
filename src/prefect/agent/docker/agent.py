@@ -124,16 +124,17 @@ class DockerAgent(Agent):
         else:
             default_url = "unix://var/run/docker.sock"
         self.logger.debug(
-            "Platform {} and default docker daemon {}".format(platform, default_url)
+            f"Platform {platform} and default docker daemon {default_url}"
         )
+
 
         # Determine Daemon URL
         self.base_url = base_url or context.get("base_url", default_url)
-        self.logger.debug("Base docker daemon url {}".format(self.base_url))
+        self.logger.debug(f"Base docker daemon url {self.base_url}")
 
         # Determine pull specification
         self.no_pull = no_pull or context.get("no_pull", False)
-        self.logger.debug("no_pull set to {}".format(self.no_pull))
+        self.logger.debug(f"no_pull set to {self.no_pull}")
 
         # Resolve volumes from specs
         (
@@ -153,7 +154,7 @@ class DockerAgent(Agent):
         self.processes = []  # type: List[multiprocessing.Process]
 
         self.reg_allow_list = reg_allow_list
-        self.logger.debug("reg_allow_list set to {}".format(self.reg_allow_list))
+        self.logger.debug(f"reg_allow_list set to {self.reg_allow_list}")
 
         # Ping Docker daemon for connection issues
         try:
@@ -188,7 +189,7 @@ class DockerAgent(Agent):
                 self.logger.info("Reconnected to Docker daemon")
             self.failed_connections = 0
         except Exception as exc:
-            self.logger.warning("Failed heartbeat: {}".format(repr(exc)))
+            self.logger.warning(f"Failed heartbeat: {repr(exc)}")
             self.failed_connections += 1
 
         if self.failed_connections >= 6:
@@ -207,10 +208,11 @@ class DockerAgent(Agent):
                 proc.terminate()
 
     def _is_named_volume_unix(self, canditate_path: str) -> bool:
-        if not canditate_path:
-            return False
-
-        return not canditate_path.startswith((".", "/", "~"))
+        return (
+            not canditate_path.startswith((".", "/", "~"))
+            if canditate_path
+            else False
+        )
 
     def _is_named_volume_win32(self, canditate_path: str) -> bool:
         result = self._is_named_volume_unix(canditate_path)
@@ -238,14 +240,10 @@ class DockerAgent(Agent):
         for volume_spec in volume_specs:
             fields = volume_spec.split(":")
 
-            if fields[-1] in ("ro", "rw"):
-                mode = fields.pop()
-            else:
-                mode = "rw"
-
+            mode = fields.pop() if fields[-1] in ("ro", "rw") else "rw"
             if len(fields) == 3 and len(fields[0]) == 1:
                 # C:\path1:/path2   <-- extenal and internal path
-                external = ntpath.normpath(":".join(fields[0:2]))
+                external = ntpath.normpath(":".join(fields[:2]))
                 internal = posixpath.normpath(fields[2])
             elif len(fields) == 2:
                 combined_path = ":".join(fields)
@@ -274,20 +272,14 @@ class DockerAgent(Agent):
                     external = ntpath.normpath(fields[0])
                     internal = external
             else:
-                raise ValueError(
-                    "Unable to parse volume specification '{}'".format(volume_spec)
-                )
+                raise ValueError(f"Unable to parse volume specification '{volume_spec}'")
 
             container_mount_paths.append(internal)
 
             if external and self._is_named_volume_win32(external):
                 named_volumes.append(external)
                 if mode != "rw":
-                    raise ValueError(
-                        "Named volumes can only have 'rw' mode, provided '{}'".format(
-                            mode
-                        )
-                    )
+                    raise ValueError(f"Named volumes can only have 'rw' mode, provided '{mode}'")
 
             if not external:
                 # no internal container path given, assume the host path is the same as the
@@ -333,11 +325,7 @@ class DockerAgent(Agent):
             if external and self._is_named_volume_unix(external):
                 named_volumes.append(external)
                 if mode != "rw":
-                    raise ValueError(
-                        "Named volumes can only have 'rw' mode, provided '{}'".format(
-                            mode
-                        )
-                    )
+                    raise ValueError(f"Named volumes can only have 'rw' mode, provided '{mode}'")
 
             if not external:
                 # no internal container path given, assume the host path is the same as the
@@ -372,29 +360,29 @@ class DockerAgent(Agent):
         env_vars = self.populate_env_vars(flow_run, image, run_config=run_config)
 
         if not self.no_pull and len(image.split("/")) > 1:
-            self.logger.info("Pulling image {}...".format(image))
+            self.logger.info(f"Pulling image {image}...")
             registry = image.split("/")[0]
             if self.reg_allow_list and registry not in self.reg_allow_list:
                 self.logger.error(
-                    "Trying to pull image from a Docker registry '{}' which"
-                    " is not in the reg_allow_list".format(registry)
+                    f"Trying to pull image from a Docker registry '{registry}' which is not in the reg_allow_list"
                 )
+
                 raise ValueError(
-                    "Trying to pull image from a Docker registry '{}' which"
-                    " is not in the reg_allow_list".format(registry)
+                    f"Trying to pull image from a Docker registry '{registry}' which is not in the reg_allow_list"
                 )
+
             else:
                 pull_output = self.docker_client.pull(image, stream=True, decode=True)
                 for line in pull_output:
                     self.logger.debug(line)
-                self.logger.info("Successfully pulled image {}".format(image))
+                self.logger.info(f"Successfully pulled image {image}")
 
         # Create any named volumes (if they do not already exist)
         for named_volume_name in self.named_volumes:
             try:
                 self.docker_client.inspect_volume(name=named_volume_name)
             except docker.errors.APIError:
-                self.logger.debug("Creating named volume {}".format(named_volume_name))
+                self.logger.debug(f"Creating named volume {named_volume_name}")
                 self.docker_client.create_volume(
                     name=named_volume_name,
                     driver="local",
@@ -402,7 +390,7 @@ class DockerAgent(Agent):
                 )
 
         # Create a container
-        self.logger.debug("Creating Docker container {}".format(image))
+        self.logger.debug(f"Creating Docker container {image}")
 
         # By default, auto-remove containers
         host_config: Dict[str, Any] = {"auto_remove": True}
@@ -429,11 +417,12 @@ class DockerAgent(Agent):
         container_mount_paths = self.container_mount_paths
         if container_mount_paths:
             host_config.update(binds=self.host_spec)
-        if run_config is not None and run_config.host_config:
-            # The host_config passed from the run_config will overwrite defaults
-            host_config.update(run_config.host_config)
-        if run_config is not None and run_config.ports:
-            ports = run_config.ports
+        if run_config is not None:
+            if run_config.host_config:
+                        # The host_config passed from the run_config will overwrite defaults
+                host_config |= run_config.host_config
+            if run_config.ports:
+                ports = run_config.ports
 
         networking_config = None
         # At the time of creation, you can only connect a container to a single network,
@@ -494,11 +483,10 @@ class DockerAgent(Agent):
                     ports=ports,
                 )
             except docker.errors.APIError as exc:
-                if "Conflict" in str(exc) and "container name" in str(exc):
-                    index += 1
-                    container_name = f"{slugified_name}-{index}"
-                else:
+                if "Conflict" not in str(exc) or "container name" not in str(exc):
                     raise
+                index += 1
+                container_name = f"{slugified_name}-{index}"
             else:
                 break
 
@@ -515,18 +503,17 @@ class DockerAgent(Agent):
         )
         if self.networks:
             self.logger.debug(
-                "Adding container with ID {} to docker networks: {}.".format(
-                    container.get("Id"), self.networks
-                )
+                f'Adding container with ID {container.get("Id")} to docker networks: {self.networks}.'
             )
+
         self.docker_client.start(container=container.get("Id"))
 
         if self.show_flow_logs:
             self.stream_flow_logs(container.get("Id"))
 
-        self.logger.debug("Docker container {} started".format(container.get("Id")))
+        self.logger.debug(f'Docker container {container.get("Id")} started')
 
-        return "Container ID: {}".format(container.get("Id"))
+        return f'Container ID: {container.get("Id")}'
 
     def stream_flow_logs(self, container_id: str) -> None:
         """Stream container logs back to stdout.
@@ -562,9 +549,9 @@ class DockerAgent(Agent):
         """
         if "localhost" in config.cloud.api:
             if self.networks and "prefect-server" in self.networks:
-                api = "http://apollo:{}".format(config.server.port)
+                api = f"http://apollo:{config.server.port}"
             else:
-                api = "http://host.docker.internal:{}".format(config.server.port)
+                api = f"http://host.docker.internal:{config.server.port}"
         else:
             api = config.cloud.api
 
@@ -572,15 +559,14 @@ class DockerAgent(Agent):
         # Set the API to be the same as the agent connects to, but since the flow run
         # will be in a container and our inferences above are not perfect, allow the
         # user to override the value
-        env = {"PREFECT__CLOUD__API": api}
+        env = {
+            "PREFECT__CLOUD__API": api,
+            "PREFECT__LOGGING__LEVEL": config.logging.level,
+        }
 
-        # 1. Logging level from config
-        # Default to the config logging level, allowing it to be overriden
-        # by later config soruces
-        env.update({"PREFECT__LOGGING__LEVEL": config.logging.level})
 
         # 2. Values set on the agent via `--env`
-        env.update(self.env_vars)
+        env |= self.env_vars
 
         # 3. Values set on a DockerRun RunConfig (if present)
         if run_config is not None and run_config.env is not None:

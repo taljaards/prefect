@@ -49,7 +49,7 @@ class IntervalClockSchema(ObjectSchema):
         """
         Ensures interval is at least one minute in length
         """
-        if data["interval"] / 1e6 < 60:
+        if data["interval"] < 60000000:
             raise ValueError(
                 "Interval can not be less than one minute when deploying to Prefect Cloud."
             )
@@ -61,8 +61,7 @@ class IntervalClockSchema(ObjectSchema):
             raise ValueError(
                 "Interval can not be less than one minute when deploying to Prefect Cloud."
             )
-        base_obj = super().create_object(data)
-        return base_obj
+        return super().create_object(data)
 
 
 class CronClockSchema(ObjectSchema):

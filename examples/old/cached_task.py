@@ -21,7 +21,7 @@ def return_random_number():
 @task
 def print_number(num):
     print("=" * 50)
-    print("Value: {}".format(num))
+    print(f"Value: {num}")
     print("=" * 50)
 
 

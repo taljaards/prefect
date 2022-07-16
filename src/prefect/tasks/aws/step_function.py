@@ -41,11 +41,7 @@ class StepActivate(Task):
                 f"and AWS region. Set execution_name when running your task instead."
             )
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     @defaults_from_attrs(
@@ -90,10 +86,8 @@ class StepActivate(Task):
             "stepfunctions", credentials=credentials, **boto_kwargs
         )
 
-        response = step_client.start_execution(
+        return step_client.start_execution(
             stateMachineArn=state_machine_arn,
             name=execution_name,
             input=execution_input,
         )
-
-        return response

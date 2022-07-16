@@ -107,11 +107,7 @@ class LambdaCreate(Task):
         self.tracing_config = tracing_config
         self.layers = layers
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     def run(self, credentials: dict = None):
@@ -133,8 +129,7 @@ class LambdaCreate(Task):
             "lambda", credentials=credentials, **self.boto_kwargs
         )
 
-        # create lambda function
-        response = lambda_client.create_function(
+        return lambda_client.create_function(
             FunctionName=self.function_name,
             Runtime=self.runtime,
             Role=self.role,
@@ -152,8 +147,6 @@ class LambdaCreate(Task):
             Tags=self.function_tags or {},
             Layers=self.layers or [],
         )
-
-        return response
 
 
 class LambdaDelete(Task):
@@ -179,11 +172,7 @@ class LambdaDelete(Task):
         self.function_name = function_name
         self.qualifier = qualifier
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     def run(self, credentials: dict = None):
@@ -260,11 +249,7 @@ class LambdaInvoke(Task):
         self.payload = payload
         self.qualifier = qualifier
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     def _encode_lambda_context(self, custom=None, env=None, client=None):
@@ -313,8 +298,7 @@ class LambdaInvoke(Task):
             "lambda", credentials=credentials, **self.boto_kwargs
         )
 
-        # invoke lambda function
-        response = lambda_client.invoke(
+        return lambda_client.invoke(
             FunctionName=function_name,
             InvocationType=self.invocation_type,
             LogType=self.log_type,
@@ -322,8 +306,6 @@ class LambdaInvoke(Task):
             Payload=payload,
             Qualifier=self.qualifier,
         )
-
-        return response
 
 
 class LambdaList(Task):
@@ -358,11 +340,7 @@ class LambdaList(Task):
         self.marker = marker
         self.max_items = max_items
 
-        if boto_kwargs is None:
-            self.boto_kwargs = {}
-        else:
-            self.boto_kwargs = boto_kwargs
-
+        self.boto_kwargs = {} if boto_kwargs is None else boto_kwargs
         super().__init__(**kwargs)
 
     def run(self, credentials: dict = None):

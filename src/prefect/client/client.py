@@ -142,7 +142,7 @@ class Client:
         a specific tenant id set, this will verify that the given tenant id is
         compatible with the API key because the tenant will be attached to the request.
         """
-        if not prefect.config.backend == "cloud":
+        if prefect.config.backend != "cloud":
 
             raise ValueError(
                 "Authentication is only supported for Prefect Cloud. "
@@ -204,10 +204,11 @@ class Client:
         WARNING: This will not mutate the `Client`, you must use the returned dict
                  to set `api_key` and `tenant_id`. This is
         """
-        if not self._auth_file.exists():
-            return {}
-
-        return toml.loads(self._auth_file.read_text()).get(self._api_server_slug, {})
+        return (
+            toml.loads(self._auth_file.read_text()).get(self._api_server_slug, {})
+            if self._auth_file.exists()
+            else {}
+        )
 
     def save_auth_to_disk(self) -> None:
         """
@@ -364,10 +365,7 @@ class Client:
             api_key=api_key,
             retry_on_api_error=retry_on_api_error,
         )
-        if response.text:
-            return response.json()
-        else:
-            return {}
+        return response.json() if response.text else {}
 
     def post(
         self,
@@ -404,10 +402,7 @@ class Client:
             api_key=api_key,
             retry_on_api_error=retry_on_api_error,
         )
-        if response.text:
-            return response.json()
-        else:
-            return {}
+        return response.json() if response.text else {}
 
     def graphql(
         self,
@@ -449,21 +444,18 @@ class Client:
             retry_on_api_error=retry_on_api_error,
         )
 
-        # TODO: It looks like this code is never reached because errors are raised
-        #       in self._send_request by default
-        if raise_on_error and "errors" in result:
-            if "UNAUTHENTICATED" in str(result["errors"]):
-                raise AuthorizationError(result["errors"])
-            elif "Malformed Authorization header" in str(result["errors"]):
-                raise AuthorizationError(result["errors"])
-            elif (
-                result["errors"][0].get("extensions", {}).get("code")
-                == "VERSION_LOCKING_ERROR"
-            ):
-                raise VersionLockMismatchSignal(result["errors"])
-            raise ClientError(result["errors"])
-        else:
+        if not raise_on_error or "errors" not in result:
             return GraphQLResult(result)  # type: ignore
+        if "UNAUTHENTICATED" in str(result["errors"]):
+            raise AuthorizationError(result["errors"])
+        elif "Malformed Authorization header" in str(result["errors"]):
+            raise AuthorizationError(result["errors"])
+        elif (
+            result["errors"][0].get("extensions", {}).get("code")
+            == "VERSION_LOCKING_ERROR"
+        ):
+            raise VersionLockMismatchSignal(result["errors"])
+        raise ClientError(result["errors"])
 
     def _send_request(
         self,
@@ -486,7 +478,13 @@ class Client:
             self.logger.debug(f"Request: {params}")
             start_time = time.time()
 
-        if method == "GET":
+        if method == "DELETE":
+            response = session.delete(
+                url,
+                headers=headers,
+                timeout=prefect.context.config.cloud.request_timeout,
+            )
+        elif method == "GET":
             response = session.get(
                 url,
                 headers=headers,
@@ -500,14 +498,8 @@ class Client:
                 json=params,
                 timeout=prefect.context.config.cloud.request_timeout,
             )
-        elif method == "DELETE":
-            response = session.delete(
-                url,
-                headers=headers,
-                timeout=prefect.context.config.cloud.request_timeout,
-            )
         else:
-            raise ValueError("Invalid method: {}".format(method))
+            raise ValueError(f"Invalid method: {method}")
 
         if prefect.context.config.cloud.get("diagnostics") is True:
             end_time = time.time()
@@ -607,7 +599,7 @@ class Client:
 
         headers = headers or {}
         if api_key:
-            headers["Authorization"] = "Bearer {}".format(api_key)
+            headers["Authorization"] = f"Bearer {api_key}"
 
         if self.api_key and self._tenant_id:
             # Attach a tenant id to the headers if using an API key since it can be
@@ -649,7 +641,7 @@ class Client:
         if "API_ERROR" in str(json_resp.get("errors")) and retry_on_api_error:
             success, retry_count = False, 0
             # retry up to six times
-            while success is False and retry_count < 6:
+            while not success and retry_count < 6:
                 response = self._send_request(
                     session=session,
                     method=method,
@@ -696,14 +688,12 @@ class Client:
 
         """
 
-        # Validate the given tenant id -------------------------------------------------
-
-        if tenant_slug and tenant_id:
-            raise ValueError(
-                "Received both `tenant_slug` and `tenant_id`; only one is allowed."
-            )
-
         if tenant_slug:
+            if tenant_id:
+                raise ValueError(
+                    "Received both `tenant_slug` and `tenant_id`; only one is allowed."
+                )
+
             tenant = self.graphql(
                 {
                     "query($slug: String)": {
@@ -785,11 +775,9 @@ class Client:
         required_parameters = {p for p in flow.parameters() if p.required}
         if flow.schedule is not None and required_parameters:
             required_names = {p.name for p in required_parameters}
-            if not all(
-                [
-                    required_names <= set(c.parameter_defaults.keys())
-                    for c in flow.schedule.clocks
-                ]
+            if any(
+                required_names > set(c.parameter_defaults.keys())
+                for c in flow.schedule.clocks
             ):
                 raise ClientError(
                     "Flows with required parameters can not be scheduled automatically."
@@ -832,10 +820,9 @@ class Client:
 
         if not project:
             raise ValueError(
-                "Project {} not found. Run `prefect create project '{}'` to create it.".format(
-                    project_name, project_name
-                )
+                f"Project {project_name} not found. Run `prefect create project '{project_name}'` to create it."
             )
+
 
         serialized_flow = flow.serialize(build=build)  # type: Any
 
@@ -844,10 +831,9 @@ class Client:
             prefect.serialization.flow.FlowSchema().load(serialized_flow)
         except Exception as exc:
             raise ValueError(
-                "Flow could not be deserialized successfully. Error was: {}".format(
-                    repr(exc)
-                )
+                f"Flow could not be deserialized successfully. Error was: {repr(exc)}"
             ) from exc
+
 
         # prepare for batched registration
         serialized_tasks = serialized_flow.pop("tasks")
@@ -956,13 +942,10 @@ class Client:
 
             prefix = "└── "
 
-            print("Flow URL: {}".format(flow_url))
+            print(f"Flow URL: {flow_url}")
 
             # Extra information to improve visibility
-            if flow.run_config is not None:
-                labels = sorted(flow.run_config.labels)
-            else:
-                labels = []
+            labels = sorted(flow.run_config.labels) if flow.run_config is not None else []
             msg = (
                 f" {prefix}ID: {flow_id}\n"
                 f" {prefix}Project: {project_name}\n"
@@ -1104,7 +1087,7 @@ class Client:
         project = self.graphql(query_project).data.project
 
         if not project:
-            raise ValueError("Project {} not found.".format(project_name))
+            raise ValueError(f"Project {project_name} not found.")
 
         project_mutation = {
             "mutation($input: delete_project_input!)": {
@@ -1231,7 +1214,7 @@ class Client:
         }
         result = self.graphql(query).data.flow_run_by_pk  # type: ignore
         if result is None:
-            raise ClientError('Flow run ID not found: "{}"'.format(flow_run_id))
+            raise ClientError(f'Flow run ID not found: "{flow_run_id}"')
 
         task_runs = [
             TaskRunInfoResult(
@@ -1335,12 +1318,10 @@ class Client:
             }
         }
 
-        flow_run = self.graphql(query).data.flow_run_by_pk
-
-        if not flow_run:
+        if flow_run := self.graphql(query).data.flow_run_by_pk:
+            return prefect.engine.state.State.deserialize(flow_run.serialized_state)
+        else:
             raise ObjectNotFoundError(f"Flow run {flow_run_id!r} not found.")
-
-        return prefect.engine.state.State.deserialize(flow_run.serialized_state)
 
     def set_flow_run_state(
         self,
@@ -1435,10 +1416,7 @@ class Client:
         query = {"query": {with_args("task_run", args): "serialized_state"}}
         result = self.graphql(query)  # type: Any
         deserializer = prefect.engine.state.State.deserialize
-        valid_states = [
-            deserializer(res.serialized_state) for res in result.data.task_run
-        ]
-        return valid_states
+        return [deserializer(res.serialized_state) for res in result.data.task_run]
 
     def get_task_run_info(
         self, flow_run_id: str, task_id: str, map_index: Optional[int] = None
@@ -1848,11 +1826,10 @@ class Client:
             ),
         )
 
-        artifact_id = result.data.create_task_run_artifact.id
-        if not artifact_id:
+        if artifact_id := result.data.create_task_run_artifact.id:
+            return artifact_id
+        else:
             raise ValueError("Error creating task run artifact")
-
-        return artifact_id
 
     def update_task_run_artifact(self, task_run_artifact_id: str, data: dict) -> None:
         """

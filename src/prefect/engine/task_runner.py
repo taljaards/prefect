@@ -88,7 +88,7 @@ class TaskRunner(Runner):
         super().__init__(state_handlers=state_handlers)
 
     def __repr__(self) -> str:
-        return "<{}: {}>".format(type(self).__name__, self.task.name)
+        return f"<{type(self).__name__}: {self.task.name}>"
 
     def call_runner_target_handlers(self, old_state: State, new_state: State) -> State:
         """
@@ -225,8 +225,9 @@ class TaskRunner(Runner):
         map_index = context.setdefault("map_index", None)
         context["task_full_name"] = "{name}{index}".format(
             name=self.task.name,
-            index=("" if map_index is None else "[{}]".format(map_index)),
+            index="" if map_index is None else f"[{map_index}]",
         )
+
 
         task_inputs = {}  # type: Dict[str, Any]
 
@@ -452,22 +453,16 @@ class TaskRunner(Runner):
 
         # we can't map if there are no success states with iterables upstream
         if upstream_states and not any(
-            [
-                edge.mapped and state.is_successful()
-                for edge, state in upstream_states.items()
-            ]
+            edge.mapped and state.is_successful()
+            for edge, state in upstream_states.items()
         ):
             new_state = Failed("No upstream states can be mapped over.")  # type: State
-            raise ENDRUN(new_state)
         elif not all(
-            [
-                hasattr(state.result, "__getitem__")
-                for edge, state in upstream_states.items()
-                if state.is_successful() and not state.is_mapped() and edge.mapped
-            ]
+            hasattr(state.result, "__getitem__")
+            for edge, state in upstream_states.items()
+            if state.is_successful() and not state.is_mapped() and edge.mapped
         ):
             new_state = Failed("At least one upstream state has an unmappable result.")
-            raise ENDRUN(new_state)
         else:
             # compute and set n_map_states
             n_map_states = min(
@@ -486,7 +481,8 @@ class TaskRunner(Runner):
             new_state = Mapped(
                 "Ready to proceed with mapping.", n_map_states=n_map_states
             )
-            raise ENDRUN(new_state)
+
+        raise ENDRUN(new_state)
 
     @call_state_handlers
     def check_task_trigger(
@@ -521,7 +517,6 @@ class TaskRunner(Runner):
                 raise exc
             raise ENDRUN(exc.state) from exc
 
-        # Exceptions are trapped and turned into TriggerFailed states
         except Exception as exc:
             self.logger.exception(
                 "Task '{name}': Unexpected error while evaluating task trigger: "
@@ -534,12 +529,11 @@ class TaskRunner(Runner):
                 raise exc
             raise ENDRUN(
                 TriggerFailed(
-                    "Unexpected error while checking task trigger: {}".format(
-                        repr(exc)
-                    ),
+                    f"Unexpected error while checking task trigger: {repr(exc)}",
                     result=exc,
                 )
             ) from exc
+
 
         return state
 
@@ -657,14 +651,11 @@ class TaskRunner(Runner):
             - Dict[str, Result]: the task inputs
 
         """
-        task_inputs = {}  # type: Dict[str, Result]
-
-        for edge, upstream_state in upstream_states.items():
-            # construct task inputs
-            if edge.key is not None:
-                task_inputs[edge.key] = upstream_state._result  # type: ignore
-
-        return task_inputs
+        return {
+            edge.key: upstream_state._result
+            for edge, upstream_state in upstream_states.items()
+            if edge.key is not None
+        }
 
     def load_results(
         self, state: State, upstream_states: Dict[Edge, State]
@@ -693,9 +684,7 @@ class TaskRunner(Runner):
 
         """
 
-        task_run_name = self.task.task_run_name
-
-        if task_run_name:
+        if task_run_name := self.task.task_run_name:
             raw_inputs = {k: r.value for k, r in task_inputs.items()}
             formatting_kwargs = {
                 **prefect.context.get("parameters", {}),
@@ -703,10 +692,11 @@ class TaskRunner(Runner):
                 **raw_inputs,
             }
 
-            if not isinstance(task_run_name, str):
-                task_run_name = task_run_name(**formatting_kwargs)
-            else:
-                task_run_name = task_run_name.format(**formatting_kwargs)
+            task_run_name = (
+                task_run_name.format(**formatting_kwargs)
+                if isinstance(task_run_name, str)
+                else task_run_name(**formatting_kwargs)
+            )
 
             prefect.context.update({"task_run_name": task_run_name})
 
@@ -746,7 +736,7 @@ class TaskRunner(Runner):
             if result.exists(target, **formatting_kwargs):  # type: ignore
                 known_location = target.format(**formatting_kwargs)  # type: ignore
                 new_res = result.read(known_location)
-                cached_state = Cached(
+                return Cached(
                     result=new_res,
                     hashed_inputs={
                         key: tokenize(val.value) for key, val in inputs.items()
@@ -755,7 +745,7 @@ class TaskRunner(Runner):
                     cached_parameters=formatting_kwargs.get("parameters"),
                     message=f"Result found at task target {known_location}",
                 )
-                return cached_state
+
 
         return state
 
@@ -832,8 +822,7 @@ class TaskRunner(Runner):
             )
             raise ENDRUN(state)
 
-        new_state = Running(message="Starting task run.")
-        return new_state
+        return Running(message="Starting task run.")
 
     @call_state_handlers
     def get_task_run_state(self, state: State, inputs: Dict[str, Result]) -> State:
@@ -894,9 +883,10 @@ class TaskRunner(Runner):
             new_state = exc.state
             assert isinstance(new_state, Looped)
             value = new_state.result
-            new_state.message = exc.state.message or "Task is looping ({})".format(
-                new_state.loop_count
+            new_state.message = (
+                exc.state.message or f"Task is looping ({new_state.loop_count})"
             )
+
 
         except signals.SUCCESS as exc:
             # Success signals can be treated like a normal result
@@ -968,14 +958,16 @@ class TaskRunner(Runner):
             and self.task.cache_for is not None
         ):
             expiration = pendulum.now("utc") + self.task.cache_for
-            cached_state = Cached(
+            return Cached(
                 result=state._result,
-                hashed_inputs={key: tokenize(val.value) for key, val in inputs.items()},
+                hashed_inputs={
+                    key: tokenize(val.value) for key, val in inputs.items()
+                },
                 cached_result_expiration=expiration,
                 cached_parameters=prefect.context.get("parameters"),
                 message=state.message,
             )
-            return cached_state
+
 
         return state
 
@@ -1048,14 +1040,14 @@ class TaskRunner(Runner):
                 msg = "Retrying Task (after attempt {n} of {m})".format(
                     n=run_count, m=self.task.max_retries + 1
                 )
-                retry_state = Retrying(
+                return Retrying(
                     start_time=start_time,
                     context=state_context,
                     message=msg,
                     run_count=run_count,
                     result=loop_result,
                 )
-                return retry_state
+
 
         return state
 
@@ -1086,13 +1078,12 @@ class TaskRunner(Runner):
         if state.is_looped():
             assert isinstance(state, Looped)  # mypy assert
             assert isinstance(context, dict)  # mypy assert
-            msg = "Looping task (on loop index {})".format(state.loop_count)
-            context.update(
-                {
-                    "task_loop_result": state.result,
-                    "task_loop_count": state.loop_count + 1,
-                }
-            )
+            msg = f"Looping task (on loop index {state.loop_count})"
+            context |= {
+                "task_loop_result": state.result,
+                "task_loop_count": state.loop_count + 1,
+            }
+
             context.update(task_run_version=prefect.context.get("task_run_version"))
             new_state = Pending(message=msg)
             raise RecursiveCall(

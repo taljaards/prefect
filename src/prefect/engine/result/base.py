@@ -113,8 +113,7 @@ class Result:
     @property
     def default_location(self) -> str:
         date = pendulum.now("utc").format("Y/M/D")  # type: ignore
-        location = f"{date}/{uuid.uuid4()}.prefect_result"
-        return location
+        return f"{date}/{uuid.uuid4()}.prefect_result"
 
     def format(self, **kwargs: Any) -> "Result":
         """

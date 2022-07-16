@@ -64,9 +64,7 @@ class SpacyNLP(Task):
                         exclude=self.exclude,
                     )
             except IOError as exc:
-                raise ValueError(
-                    "spaCy model %s not found." % spacy_model_name
-                ) from exc
+                raise ValueError(f"spaCy model {spacy_model_name} not found.") from exc
 
         super().__init__(**kwargs)
 
@@ -81,9 +79,7 @@ class SpacyNLP(Task):
         Returns:
             - Doc: spaCy document
         """
-        doc = self.nlp(text)
-
-        return doc
+        return self.nlp(text)
 
 
 class SpacyTagger(Task):
@@ -234,4 +230,4 @@ class SpacyComponent(Task):
             if name == component_name:
                 return component
 
-        raise ValueError("Pipeline component %s not found" % component_name)
+        raise ValueError(f"Pipeline component {component_name} not found")

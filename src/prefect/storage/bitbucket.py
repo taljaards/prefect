@@ -206,19 +206,16 @@ class Bitbucket(Storage):
                 self.logger.error(
                     "Access denied to repository. Please check credentials."
                 )
-                raise
             elif err.code == 404:
                 self.logger.error(
                     "Invalid address. Check that host, project, and repository are correct."
                 )
-                raise
             else:
                 self.logger.error(
                     f"Error retrieving contents at {flow_location} in {self.repo}@{ref}. "
                     "Please check arguments passed to Bitbucket storage and verify project exists."
                 )
-                raise
-
+            raise
         return extract_flow_from_file(file_contents=contents, flow_name=flow_name)
 
     def add_flow(self, flow: "Flow") -> str:
@@ -236,10 +233,9 @@ class Bitbucket(Storage):
         """
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
+
 
         self.flows[flow.name] = self.path  # type: ignore
         self._flows[flow.name] = flow
@@ -270,7 +266,7 @@ class Bitbucket(Storage):
         if access_token is None:
             session.headers["Authorization"] = "Bearer "
         else:
-            session.headers["Authorization"] = "Bearer " + access_token
+            session.headers["Authorization"] = f"Bearer {access_token}"
         return Bitbucket(host, session=session)
 
     def _get_bitbucket_cloud_client(self) -> "atlassian.Bitbucket":

@@ -163,8 +163,9 @@ class Docker(Storage):
 
         self.env_vars = env_vars or {}
         self.env_vars.setdefault(
-            "PREFECT__USER_CONFIG_PATH", "{}/config.toml".format(self.prefect_directory)
+            "PREFECT__USER_CONFIG_PATH", f"{self.prefect_directory}/config.toml"
         )
+
 
         self.files = files or {}
         self.local_image = local_image
@@ -189,26 +190,20 @@ class Docker(Storage):
             self.prefect_version = prefect_version
 
         if base_image is None and dockerfile is None:
-            python_version = "{}.{}".format(
-                sys.version_info.major, sys.version_info.minor
-            )
+            python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
             if re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", self.prefect_version) is not None:
-                self.base_image = "prefecthq/prefect:{}-python{}".format(
-                    self.prefect_version, python_version
-                )
+                self.base_image = f"prefecthq/prefect:{self.prefect_version}-python{python_version}"
+
             elif self.prefect_version.endswith("rc0"):
                 # Development release candidate
                 self.base_image = f"prefecthq/prefect:{self.prefect_version}"
-            elif (
-                re.match(r"^[0-9]+\.[0-9]+rc[0-9]+$", self.prefect_version) is not None
-            ):
+            elif re.match(r"^[0-9]+\.[0-9]+rc[0-9]+$", self.prefect_version) is not None:
                 # Actual release candidate
-                self.base_image = "prefecthq/prefect:{}-python{}".format(
-                    self.prefect_version, python_version
-                )
+                self.base_image = f"prefecthq/prefect:{self.prefect_version}-python{python_version}"
+
             else:
                 # create an image from python:*-slim directly
-                self.base_image = "python:{}-slim".format(python_version)
+                self.base_image = f"python:{python_version}-slim"
                 self.installation_commands.append(
                     "apt update && apt install -y gcc git make && rm -rf /var/lib/apt/lists/*"
                 )
@@ -229,16 +224,13 @@ class Docker(Storage):
             f"@{self.prefect_version}#egg=prefect[all_orchestration_extras]"
         )
 
-        not_absolute = [
+        if not_absolute := [
             file_path for file_path in self.files if not os.path.isabs(file_path)
-        ]
-        if not_absolute:
+        ]:
             raise ValueError(
-                (
-                    "Provided paths {} are not absolute file paths, please provide "
-                    "absolute paths only."
-                ).format(", ".join(not_absolute))
+                f'Provided paths {", ".join(not_absolute)} are not absolute file paths, please provide absolute paths only.'
             )
+
         super().__init__(stored_as_script=stored_as_script, **kwargs)
 
     def add_flow(self, flow: "prefect.core.flow.Flow") -> str:
@@ -253,13 +245,14 @@ class Docker(Storage):
         """
         if flow.name in self:
             raise ValueError(
-                'Name conflict: Flow with the name "{}" is already present in this storage.'.format(
-                    flow.name
-                )
+                f'Name conflict: Flow with the name "{flow.name}" is already present in this storage.'
             )
-        flow_path = self.path or "{}/flows/{}.prefect".format(
-            self.prefect_directory, slugify(flow.name)
+
+        flow_path = (
+            self.path
+            or f"{self.prefect_directory}/flows/{slugify(flow.name)}.prefect"
         )
+
         self.flows[flow.name] = flow_path
         self._flows[flow.name] = flow  # needed prior to build
         return flow_path
@@ -294,10 +287,7 @@ class Docker(Storage):
                 "Docker storage is missing required fields image_name and image_tag"
             )
 
-        return "{}:{}".format(
-            PurePosixPath(self.registry_url or "", self.image_name),  # type: ignore
-            self.image_tag,  # type: ignore
-        )
+        return f'{PurePosixPath(self.registry_url or "", self.image_name)}:{self.image_tag}'
 
     def build(self, push: bool = True) -> "Storage":
         """
@@ -347,8 +337,8 @@ class Docker(Storage):
         # note that if the user provides a custom dockerfile, we create the temporary directory
         # within the current working directory to preserve their build context
         with tempfile.TemporaryDirectory(
-            dir="." if self.dockerfile else None
-        ) as tempdir:
+                dir="." if self.dockerfile else None
+            ) as tempdir:
             # Build the dockerfile
             if self.base_image and not self.local_image:
                 self.pull_image()
@@ -360,7 +350,7 @@ class Docker(Storage):
             # pushed
             if self.registry_url:
                 full_name = str(PurePosixPath(self.registry_url, self.image_name))
-            elif push is True:
+            elif push:
                 warnings.warn(
                     "This Docker storage object has no `registry_url`, and "
                     "will not be pushed.",
@@ -381,13 +371,14 @@ class Docker(Storage):
             output = client.build(
                 path="." if self.dockerfile else tempdir,
                 dockerfile=dockerfile_path,
-                tag="{}:{}".format(full_name, self.image_tag),
+                tag=f"{full_name}:{self.image_tag}",
                 rm=self.rm_build_kwarg,
                 **self.build_kwargs,
             )
+
             self._parse_generator_output(output)
 
-            if len(client.images(name="{}:{}".format(full_name, self.image_tag))) == 0:
+            if len(client.images(name=f"{full_name}:{self.image_tag}")) == 0:
                 raise ValueError(
                     "Your docker image failed to build!  Your flow might have "
                     "failed one of its deployment health checks - please ensure "
@@ -399,9 +390,7 @@ class Docker(Storage):
                 self.push_image(full_name, self.image_tag)
 
                 # Remove the image locally after being pushed
-                client.remove_image(
-                    image="{}:{}".format(full_name, self.image_tag), force=True
-                )
+                client.remove_image(image=f"{full_name}:{self.image_tag}", force=True)
 
         return self.image_name, self.image_tag
 
@@ -445,12 +434,12 @@ class Docker(Storage):
         pip_installs = "RUN pip install "
         if self.python_dependencies:
             for dependency in self.python_dependencies:
-                pip_installs += "{} ".format(dependency)
+                pip_installs += f"{dependency} "
 
         # Write all install-time commands that should be run in the image
-        installation_commands = ""
-        for cmd in self.installation_commands:
-            installation_commands += "RUN {}\n".format(cmd)
+        installation_commands = "".join(
+            f"RUN {cmd}\n" for cmd in self.installation_commands
+        )
 
         # Copy user specified files into the image
         copy_files = ""
@@ -470,13 +459,12 @@ class Docker(Storage):
                             fname=full_fname, directory=directory
                         )
                     )
+                if os.path.isdir(src):
+                    shutil.copytree(
+                        src=src, dst=full_fname, symlinks=False, ignore=None
+                    )
                 else:
-                    if os.path.isdir(src):
-                        shutil.copytree(
-                            src=src, dst=full_fname, symlinks=False, ignore=None
-                        )
-                    else:
-                        shutil.copy2(src=src, dst=full_fname)
+                    shutil.copy2(src=src, dst=full_fname)
                 copy_files += "COPY {fname} {dest}\n".format(
                     fname=full_fname.replace("\\", "/") if self.dockerfile else fname,
                     dest=dest,
@@ -487,22 +475,20 @@ class Docker(Storage):
         if not self.stored_as_script:
             for flow_name, flow_location in self.flows.items():
                 clean_name = slugify(flow_name)
-                flow_path = os.path.join(directory, "{}.flow".format(clean_name))
+                flow_path = os.path.join(directory, f"{clean_name}.flow")
                 with open(flow_path, "wb") as f:
                     f.write(flow_to_bytes_pickle(self._flows[flow_name]))
                 copy_flows += "COPY {source} {dest}\n".format(
-                    source=(
-                        flow_path.replace("\\", "/")
-                        if self.dockerfile
-                        else "{}.flow".format(clean_name)
-                    ),
+                    source=flow_path.replace("\\", "/")
+                    if self.dockerfile
+                    else f"{clean_name}.flow",
                     dest=flow_location,
                 )
-        else:
-            if not self.path:
-                raise ValueError(
-                    "A `path` must be provided to show where flow `.py` file is stored in the image."
-                )
+
+        elif not self.path:
+            raise ValueError(
+                "A `path` must be provided to show where flow `.py` file is stored in the image."
+            )
 
         # Write final extra user commands that should be run in the image
         final_commands = (
@@ -529,7 +515,7 @@ class Docker(Storage):
         # Generate the command to run the healthcheck
         healthcheck_run = ""
         if not self.ignore_healthchecks:
-            flow_file_paths = ", ".join(['"{}"'.format(k) for k in self.flows.values()])
+            flow_file_paths = ", ".join([f'"{k}"' for k in self.flows.values()])
             python_version = (sys.version_info.major, sys.version_info.minor)
             healthcheck_run = (
                 f"RUN python {self.prefect_directory}/healthcheck.py "
@@ -628,12 +614,10 @@ class Docker(Storage):
                 parsed = json.loads(line)
                 if not isinstance(parsed, dict):
                     continue
-                # Parse several possible schemas
-                output = (
+                if output := (
                     parsed.get("stream")
                     or parsed.get("message")
                     or parsed.get("errorDetail", {}).get("message")
                     or ""
-                ).strip("\n")
-                if output:
+                ).strip("\n"):
                     print(output)

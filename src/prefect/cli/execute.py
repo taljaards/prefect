@@ -54,8 +54,8 @@ def flow_run():
     flow_run = result.data.flow_run
 
     if not flow_run:
-        click.echo("Flow run {} not found".format(flow_run_id))
-        raise ValueError("Flow run {} not found".format(flow_run_id))
+        click.echo(f"Flow run {flow_run_id} not found")
+        raise ValueError(f"Flow run {flow_run_id} not found")
 
     # Set the `running_with_backend` context variable to enable logging
     with prefect.context(running_with_backend=True):
@@ -77,7 +77,7 @@ def flow_run():
                 runner_cls(flow=flow).run()
 
         except Exception as exc:
-            msg = "Failed to load and execute flow run: {}".format(repr(exc))
+            msg = f"Failed to load and execute flow run: {repr(exc)}"
             state = prefect.engine.state.Failed(message=msg)
             client.set_flow_run_state(flow_run_id=flow_run_id, state=state)
             client.write_run_logs(

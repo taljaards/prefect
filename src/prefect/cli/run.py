@@ -77,12 +77,11 @@ def try_error_done(
     except Exception as exc:
         echo(" Error", fg="red")
 
-        if traceback and not isinstance(exc, TerminalError):
-            log_exception(exc, indent=2)
-            raise TerminalError
-        else:
+        if not traceback or isinstance(exc, TerminalError):
             raise TerminalError(f"{type(exc).__name__}: {exc}")
 
+        log_exception(exc, indent=2)
+        raise TerminalError
     else:
         if not skip_done:
             echo(" Done", fg="green")
@@ -124,8 +123,7 @@ def load_flows_from_script(path: str) -> "List[prefect.Flow]":
     finally:
         sys.path[:] = orig_sys_path
 
-    flows = [f for f in namespace.values() if isinstance(f, prefect.Flow)]
-    return flows
+    return [f for f in namespace.values() if isinstance(f, prefect.Flow)]
 
 
 def load_flows_from_module(name: str) -> "List[prefect.Flow]":
@@ -220,13 +218,14 @@ def get_flow_view(
         )
 
     if project:
-        if not name:
+        if name:
+            return FlowView.from_flow_name(flow_name=name, project_name=project)
+
+        else:
             raise TerminalError(
                 "Missing required option `--name`. Cannot look up a flow by project "
                 "without also passing a name."
             )
-        return FlowView.from_flow_name(flow_name=name, project_name=project)
-
     if name:
         # If name wasn't provided for use with another lookup, try a global name search
         return FlowView.from_flow_name(flow_name=name)
@@ -344,7 +343,6 @@ See `prefect run --help` for more details on the options.
 
 
 @click.group(invoke_without_command=True, epilog=RUN_EPILOG)
-# Flow lookup settings -----------------------------------------------------------------
 @click.option(
     "--id",
     "-i",
@@ -376,7 +374,6 @@ See `prefect run --help` for more details on the options.
         "source contains multiple flows, this must be provided. "
     ),
 )
-# Flow run settings --------------------------------------------------------------------
 @click.option(
     "--label",
     "labels",
@@ -456,7 +453,6 @@ See `prefect run --help` for more details on the options.
     ),
     is_flag=True,
 )
-# Display settings ---------------------------------------------------------------------
 @click.option(
     "--quiet",
     "-q",
@@ -525,8 +521,9 @@ def run(
     # it requires a special case here
     if not given_lookup_options and not name:
         raise ClickException(
-            "Received no options to look up the flow." + FLOW_LOOKUP_MSG
+            f"Received no options to look up the flow.{FLOW_LOOKUP_MSG}"
         )
+
     if "--id" in given_lookup_options and name:
         raise ClickException(
             "Received too many options to look up the flow; "
@@ -557,8 +554,9 @@ def run(
             )
 
     cli_params = load_json_key_values(params, "parameter")
-    conflicting_keys = set(cli_params.keys()).intersection(file_params.keys())
-    if conflicting_keys:
+    if conflicting_keys := set(cli_params.keys()).intersection(
+        file_params.keys()
+    ):
         quiet_echo(
             "The following parameters were specified by file and CLI, the CLI value "
             f"will be used: {conflicting_keys}"
@@ -714,8 +712,6 @@ def run(
                 execute_flow_run_in_subprocess(flow_run_id)
         except KeyboardInterrupt:
             quiet_echo("Keyboard interrupt detected! Aborting...", fg="yellow")
-            pass
-
     elif watch:
         try:
             quiet_echo("Watching flow run execution...")
